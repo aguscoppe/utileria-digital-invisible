@@ -1,0 +1,3 @@
+.desktop-wallpaper-photo,.lock-wallpaper-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.chat-image-fallback{width:min(210px,64vw);height:132px;margin-bottom:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border-radius:5px;background:linear-gradient(145deg,#7a7b68,#454d43);color:#f6f4eb}.chat-image-fallback span{font-size:28px}.chat-image-fallback small{font-size:9px}
+.chat-avatar,.story-avatar{position:relative}.chat-avatar span,.story-avatar span{position:absolute;inset:0;display:grid;place-items:center;z-index:0}.chat-avatar img,.story-avatar img{position:absolute;inset:0;width:100%;height:100%;z-index:1;object-fit:cover}

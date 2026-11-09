@@ -1,0 +1,11 @@
+/* Keep phone mockups at the specified 9:16 ratio on tall mobile viewports. */
+.desktop-screen,.mail-screen,.terminal-screen,.lock-screen,.incoming-call-screen,.call-cut-screen{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%)}
+.desktop-screen,.mail-screen,.terminal-screen{min-height:0}
+@media(max-width:750px){
+  .desktop-screen,.mail-screen,.terminal-screen{width:min(100vw,177.78vh);height:min(100vh,56.25vw)}
+}
+@media(max-width:600px){
+  .story-frame,.chat-phone,.lock-screen,.incoming-call-screen,.call-cut-screen{width:min(100vw,56.25vh,430px);height:min(100vh,177.78vw,764px);border:5px solid #242528;border-radius:24px}
+  .lock-screen,.incoming-call-screen,.call-cut-screen{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%)}
+  .chat-phone{box-shadow:0 18px 80px #0008}
+}
