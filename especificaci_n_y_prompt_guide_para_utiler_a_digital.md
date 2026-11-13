@@ -91,7 +91,7 @@ El asistente de IA debe implementar la siguiente biblioteca de componentes base:
   * **Requerimientos UI:** Navegador en modo incógnito con efecto *Typewriter* imprimiendo:
     1. `"Replicando interacciones afectivas..."`
     2. `"Cargando datos visuales de Martina..."`
-    3. `"Procesando métricas biométricas..."`
+    3. `"Procesando datos biométricos..."`
     4. `"Enviando a Martina"`
     5. `"Cruzando historial de ubicación..."`
     6. `"No sos horrible."`
