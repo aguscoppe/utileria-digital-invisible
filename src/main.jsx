@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Apple, FolderOpen, StickyNote, Music2, Wifi, Search, BatteryFull, ShieldCheck, SkipBack, SkipForward, Pause, Play, Mail, Images, Settings, Minus, X, Maximize2, Minimize2, Send, Mic, Square } from 'lucide-react'
+import { Apple, FolderOpen, StickyNote, Music2, Wifi, Search, BatteryFull, Signal, ShieldCheck, SkipBack, SkipForward, Pause, Play, Mail, Images, Settings, Minus, X, Maximize2, Minimize2, Send, Mic, Square, ArrowLeft, Menu, Grid3X3, Clapperboard, UserRound, House, Share2 } from 'lucide-react'
 import '@fontsource/inter/latin-400.css'
 import '@fontsource/inter/latin-500.css'
 import '@fontsource/inter/latin-600.css'
@@ -147,9 +147,9 @@ const storyData = [
   { id: 'friends', mediaUrl: assets.agustinaStory, caption: '🖤' },
 ]
 const julianPosts = [
-  { id: 'julian-profile-post', mediaUrl: assets.julianProfilePosts, position: '0%', caption: 'Julián' },
-  { id: 'julian-dog-post', mediaUrl: assets.julianProfilePosts, position: '50%', caption: 'El perro de Julián' },
-  { id: 'julian-eiffel-post', mediaUrl: assets.julianProfilePosts, position: '100%', caption: 'Julián en París' },
+  { id: 'julian-profile-post', mediaUrl: '/assets/julian_profile_generated.png', caption: 'Julián' },
+  { id: 'julian-dog-post', mediaUrl: '/assets/julian_dog_post.png', caption: 'El perro de Julián' },
+  { id: 'julian-eiffel-post', mediaUrl: '/assets/julian_eiffel_post.png', caption: 'Julián en París' },
 ]
 const promoEmails = [
   { sender: 'LavaLab', avatar: 'L', color: '#6c718f', time: 'AYER', subject: '¿Te gustó tu lámpara de lava?', preview: 'Contanos en una encuesta de 5 minutos.' },
@@ -179,22 +179,87 @@ function AssetUploadSection() {
   const [fileSizes, setFileSizes] = useState({})
   const [uploading, setUploading] = useState('')
   const [message, setMessage] = useState('')
+  const [messageIsError, setMessageIsError] = useState(false)
 
   useEffect(() => {
-    fetch('/__asset-manager/status').then((response) => response.ok ? response.json() : {}).then(setFileSizes).catch(() => {})
+    fetch('/__asset-manager/status').then((response) => {
+      if (!response.ok) throw new Error('No se pudo consultar el estado de los archivos')
+      return response.json()
+    }).then(setFileSizes).catch(() => setMessage('No se pudo consultar el estado de los archivos. Abrí el proyecto con npm run dev.'))
   }, [])
+
+  async function prepareAssetFile(asset, file) {
+    if (!file.size) throw new Error('El archivo está vacío')
+    if (file.size > 100 * 1024 * 1024) throw new Error('El archivo supera el límite de 100 MB')
+    if (asset.id === 'mail-video') {
+      const url = URL.createObjectURL(file)
+      try {
+        await new Promise((resolve, reject) => {
+          const video = document.createElement('video')
+          video.preload = 'metadata'
+          video.onloadedmetadata = () => video.videoWidth && video.videoHeight ? resolve() : reject(new Error('El video no tiene una imagen válida'))
+          video.onerror = () => reject(new Error('No se pudo procesar el video; elegí un MP4 válido'))
+          video.src = url
+        })
+      } finally { URL.revokeObjectURL(url) }
+      return file
+    }
+    let image
+    if (typeof createImageBitmap === 'function') {
+      try { image = await createImageBitmap(file, { imageOrientation: 'from-image' }) } catch { /* Try the browser image decoder as a fallback. */ }
+    }
+    if (!image) {
+      const url = URL.createObjectURL(file)
+      try {
+        image = await new Promise((resolve, reject) => {
+          const loadedImage = new Image()
+          loadedImage.onload = () => resolve(loadedImage)
+          loadedImage.onerror = () => reject(new Error('El teléfono no pudo abrir esta foto. Guardala como JPEG o HEIC compatible y volvé a intentar.'))
+          loadedImage.src = url
+        })
+      } finally { URL.revokeObjectURL(url) }
+    }
+    const imageWidth = image.width || image.naturalWidth
+    const imageHeight = image.height || image.naturalHeight
+    if (!imageWidth || !imageHeight) {
+      image.close?.()
+      throw new Error('El teléfono no pudo leer las dimensiones de esta foto')
+    }
+    const scale = Math.min(1, 2400 / Math.max(imageWidth, imageHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(imageWidth * scale))
+    canvas.height = Math.max(1, Math.round(imageHeight * scale))
+    const context = canvas.getContext('2d', { alpha: false })
+    if (!context) {
+      image.close?.()
+      throw new Error('No se pudo preparar la foto en este teléfono')
+    }
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    image.close?.()
+    const jpegBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.88))
+    if (!jpegBlob) throw new Error('No se pudo convertir la foto a JPEG')
+    const jpegName = `${file.name.replace(/\.[^.]+$/, '') || 'foto'}.jpg`
+    return new File([jpegBlob], jpegName, { type: 'image/jpeg', lastModified: Date.now() })
+  }
 
   async function uploadFile(asset, file) {
     setUploading(asset.id)
     setMessage('')
+    setMessageIsError(false)
     try {
-      const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', body: file })
+      const uploadFileData = await prepareAssetFile(asset, file)
+      const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', headers: { 'Content-Type': uploadFileData.type || 'application/octet-stream' }, body: uploadFileData })
       if (!response.ok) throw new Error(await response.text())
       const result = await response.json()
       setFileSizes((current) => ({ ...current, [asset.id]: result.size }))
       setMessage(`${asset.filename} quedó guardado con el nombre correcto`)
+      window.setTimeout(() => window.location.reload(), 1200)
     } catch (error) {
-      setMessage(`No se pudo guardar ${asset.filename}: ${error.message}. Abrí el proyecto con npm run dev.`)
+      setMessageIsError(true)
+      const detail = error instanceof TypeError && error.message === 'Failed to fetch'
+        ? 'No se pudo conectar con el servidor del proyecto. Abrí la app desde la dirección de red de la computadora y mantené npm run dev ejecutándose.'
+        : error.message
+      setMessage(`No se pudo guardar ${asset.filename}: ${detail}`)
     } finally {
       setUploading('')
     }
@@ -203,12 +268,15 @@ function AssetUploadSection() {
   async function resetFile(asset) {
     setUploading(asset.id)
     setMessage('')
+    setMessageIsError(false)
     try {
       const response = await fetch(`/__asset-manager/reset/${asset.id}`, { method: 'POST' })
       if (!response.ok) throw new Error(await response.text())
       setFileSizes((current) => ({ ...current, [asset.id]: 0 }))
       setMessage(`${asset.filename} volvió al placeholder vacío`)
+      window.setTimeout(() => window.location.reload(), 1200)
     } catch (error) {
+      setMessageIsError(true)
       setMessage(`No se pudo restaurar ${asset.filename}: ${error.message}. Abrí el proyecto con npm run dev.`)
     } finally {
       setUploading('')
@@ -222,11 +290,11 @@ function AssetUploadSection() {
       const size = fileSizes[asset.id] || 0
       return <article className="asset-upload-row" key={asset.id}>
         <div className="asset-upload-info"><strong>{asset.label}</strong><code>{asset.filename}</code><small>{size ? `${(size / 1024 / 1024).toFixed(size < 1024 * 1024 ? 0 : 1)} MB · archivo cargado` : 'Placeholder vacío'}</small></div>
-        <label className="asset-file-picker">{uploading === asset.id ? 'Guardando…' : 'Elegir archivo'}<input type="file" accept={asset.accept} disabled={Boolean(uploading)} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(asset, file); event.target.value = '' }} /></label>
+        <label className="asset-file-picker">{uploading === asset.id ? 'Guardando…' : 'Elegir archivo'}<input type="file" accept={asset.id === 'mail-video' ? 'video/mp4' : 'image/*'} disabled={Boolean(uploading)} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(asset, file); event.target.value = '' }} /></label>
         <button type="button" className="asset-reset-button" disabled={!size || Boolean(uploading)} onClick={() => resetFile(asset)}>Restaurar vacío</button>
       </article>
     })}</div>
-    {message && <p className="asset-upload-message" role="status">{message}</p>}
+    {message && <p className="asset-upload-message" style={messageIsError ? { color: '#ffaaa3' } : undefined} role={messageIsError ? 'alert' : 'status'}>{message}</p>}
   </section>
 }
 function App() {
@@ -282,7 +350,7 @@ function App() {
     if (selected.path === '/mobile/esc1a-p1') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
     if (selected.path === '/mobile/esc1g-p11') return <WhatsAppChat onHome={() => navigate('/')} contactPhone="+54 9 11 1103-1976" contactAvatar={assets.julianAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer />
     if (selected.path === '/mobile/esc1g-p12') return <WhatsAppChat onHome={() => navigate('/')} contactPhone="+54 9 11 1103-1976" contactAvatar={assets.julianAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer dynamicReplay />
-    if (selected.path === '/mobile/esc1g-p10') return <IncomingCall onHome={() => navigate('/')} callerName="JULIÁN" callerSubtext="llamada de voz entrante" avatarUrl={assets.julianAvatar} />
+    if (selected.path === '/mobile/esc1g-p10') return <IncomingCall onHome={() => navigate('/')} callerName="JULIÁN" callerSubtext="llamada de voz entrante" avatarUrl={assets.julianAvatar} clockTime={clockTime} />
     return <ScenePlaceholder scene={selected} onHome={() => navigate('/')} />
   }
 
@@ -725,15 +793,19 @@ function formatWhatsAppChatText(text, sender) {
   return formatted
 }
 
-function WhatsAppMessageBubble({ message, broken = false, onImageError, showTimestamp = true }) {
+function WhatsAppMessageBubble({ message, broken = false, onImageError, showTimestamp = true, previewable = false, onClick }) {
   const messageText = message.text || message.transcript
-  return <article className="chat-bubble">
+  return <article className={`chat-bubble${previewable ? ' is-previewable' : ''}`} onClick={onClick}>
     {message.audioDuration && !messageText && <div className="chat-audio-note" aria-label={message.sender === 'me' ? 'Nota de voz enviada' : `Nota de voz, ${message.audioDuration}`}><span className="chat-audio-play">▶</span><span className="chat-audio-waveform">{Array.from({ length: 22 }, (_, index) => <i key={index} style={{ height: `${7 + ((index * 7) % 14)}px` }} />)}</span>{message.sender !== 'me' && <small>{message.audioDuration}</small>}</div>}
     {message.photoLabel && <div className="chat-image-fallback"><span>▧</span><small>{message.photoLabel}</small></div>}
     {message.image && (broken ? <div className="chat-image-fallback"><span>▧</span><small>{message.imageAlt || 'Imagen compartida'}</small></div> : <img className="chat-image" src={message.image} alt={message.imageAlt || 'Imagen compartida'} onError={onImageError} />)}
     {messageText && <span className="chat-message-text">{formatWhatsAppChatText(messageText, message.sender)}</span>}
     <footer>{showTimestamp && <time>{message.timestamp || '09:43'}</time>}{message.sender === 'me' && <span className={`message-status ${message.status === 'read' ? 'read' : ''}`}>✓✓</span>}</footer>
   </article>
+}
+
+function PhoneStatusIcons() {
+  return <span className="chat-status-icons" aria-label="Señal, Wi-Fi y batería"><Signal /><Wifi /><BatteryFull /></span>
 }
 
 function ChatHistoryPreview({ messages, followingMessages = [], contactName, contactAvatar, onClose }) {
@@ -775,7 +847,7 @@ function ChatHistoryPreview({ messages, followingMessages = [], contactName, con
 
   return <div className="chat-preview-overlay">
     <section className="chat-preview-window" aria-label="Chat">
-      <div className="chat-status"><span>09:43</span><span>●●●　◖　▰</span></div>
+      <div className="chat-status"><span>09:43</span><PhoneStatusIcons /></div>
       <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver al chat completo" onClick={onClose}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><div className="chat-contact"><strong>{contactName || 'Número desconocido'}</strong><small>{contactName ? '+54 9 11 1103-1976' : 'últ. vez hoy a las 09:39'}</small></div><button aria-label="Videollamada"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button></header>
       <div className="chat-preview-messages">{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message) => <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}`} key={`preview-${message.id}`}><WhatsAppMessageBubble message={message} showTimestamp={Boolean(message.timestamp)} /></div>)}<div className="chat-date-divider">HOY</div></div>
       <div className="chat-composer chat-preview-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input"><input className="chat-message-input" aria-label="Mensaje" placeholder="Mensaje" value={draft} disabled={isTyping} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendText() } }} /></div><button className="composer-audio" aria-label={draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping} onClick={draft.trim() ? sendText : sendAudio}>{draft.trim() ? <Send /> : <Mic />}</button></div>
@@ -798,10 +870,15 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
   const [isStoryOpen, setIsStoryOpen] = useState(false)
   const [progress, setProgress] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [zoomed, setZoomed] = useState(false)
+  const [zoomScale, setZoomScale] = useState(1)
   const [brokenImages, setBrokenImages] = useState({})
   const progressRef = useRef(0)
   const pointerDownAtRef = useRef(0)
+  const activePointersRef = useRef(new Map())
+  const pinchStartDistanceRef = useRef(0)
+  const pinchStartScaleRef = useRef(1)
+  const pinchOccurredRef = useRef(false)
+  const gestureDirectionRef = useRef(1)
   const story = stories[storyIndex]
 
   useEffect(() => {
@@ -820,7 +897,7 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
           if (storyIndex >= stories.length - 1) {
             setIsStoryOpen(false)
             setStoryIndex(0)
-            setZoomed(false)
+            setZoomScale(1)
           } else setStoryIndex(storyIndex + 1)
         }
         setProgress(progressRef.current)
@@ -830,6 +907,8 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
     animationFrame = window.requestAnimationFrame(advance)
     return () => window.cancelAnimationFrame(animationFrame)
   }, [isStoryOpen, paused, durationPerStory, stories.length, storyIndex, story])
+
+  useEffect(() => { setZoomScale(1) }, [storyIndex])
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -849,7 +928,7 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
     if (direction > 0 && storyIndex >= stories.length - 1) {
       setIsStoryOpen(false)
       setStoryIndex(0)
-      setZoomed(false)
+      setZoomScale(1)
     } else if (direction < 0 && storyIndex === 0) {
       progressRef.current = 0
       setProgress(0)
@@ -857,41 +936,73 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
     } else setStoryIndex(storyIndex + direction)
     progressRef.current = 0
     setProgress(0)
+    setZoomScale(1)
   }
 
-  function startStoryPress(event) {
+  function storyPointerDown(event) {
+    const button = event.target.closest('button')
+    if ((button && !button.closest('.story-hit-zones')) || event.target.closest('.story-reply')) return
     event.currentTarget.setPointerCapture?.(event.pointerId)
-    pointerDownAtRef.current = performance.now()
+    const pointers = activePointersRef.current
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (pointers.size === 1) {
+      pointerDownAtRef.current = performance.now()
+      gestureDirectionRef.current = event.clientX >= event.currentTarget.getBoundingClientRect().left + event.currentTarget.clientWidth / 2 ? 1 : -1
+      pinchOccurredRef.current = false
+    }
+    if (pointers.size >= 2) {
+      const [first, second] = [...pointers.values()]
+      pinchStartDistanceRef.current = Math.hypot(first.x - second.x, first.y - second.y)
+      pinchStartScaleRef.current = zoomScale
+      pinchOccurredRef.current = true
+    }
     setPaused(true)
   }
 
-  function endStoryPress(direction) {
-    const wasHold = performance.now() - pointerDownAtRef.current >= 250
-    pointerDownAtRef.current = 0
-    setPaused(false)
-    if (!wasHold) changeStory(direction)
+  function storyPointerMove(event) {
+    const pointers = activePointersRef.current
+    if (!pointers.has(event.pointerId)) return
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (pointers.size < 2) return
+    const [first, second] = [...pointers.values()]
+    const distance = Math.hypot(first.x - second.x, first.y - second.y)
+    if (!pinchStartDistanceRef.current) return
+    const scale = Math.min(3, Math.max(1, pinchStartScaleRef.current * distance / pinchStartDistanceRef.current))
+    setZoomScale(scale)
   }
 
-  function cancelStoryPress() {
+  function storyPointerUp(event, cancelled = false) {
+    const pointers = activePointersRef.current
+    if (!pointers.has(event.pointerId)) return
+    const wasPinch = pinchOccurredRef.current
+    pointers.delete(event.pointerId)
+    if (pointers.size > 0) return
+    const wasHold = performance.now() - pointerDownAtRef.current >= 250
     pointerDownAtRef.current = 0
+    pinchStartDistanceRef.current = 0
+    pinchOccurredRef.current = false
     setPaused(false)
+    if (!cancelled && !wasPinch && !wasHold) changeStory(gestureDirectionRef.current)
+  }
+
+  function cancelStoryPress(event) {
+    storyPointerUp(event, true)
   }
 
   if (!isStoryOpen) return <InstagramProfile username={username} avatarUrl={avatarUrl} clockTime={clockTime} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
   if (!story) return null
-  return <main className="story-screen">
-    <div className="story-frame">
-      <div className={`story-media story-art-${storyIndex % 2} ${zoomed ? 'zoomed' : ''}`}>
-        {story.mediaUrl && !brokenImages[story.id] && <img className="story-photo" src={story.mediaUrl} alt={story.caption} onError={() => setBrokenImages((current) => ({ ...current, [story.id]: true }))} />}
-        {(!story.mediaUrl || brokenImages[story.id]) && <div className="story-placeholder-art"><span className="moon" /><span className="party-light light-one" /><span className="party-light light-two" /><span className="story-silhouette silhouette-one" /><span className="story-silhouette silhouette-two" />{storyIndex % 2 === 1 && <div className="couple-caption">J<span>&</span>A</div>}</div>}
+  const isZoomed = zoomScale > 1.02
+  return <main className={`story-screen${isZoomed ? ' story-is-zoomed' : ''}`}>
+    <div className={`story-frame${isZoomed ? ' is-zoomed' : ''}`}>
+      <div className={`story-media story-art-${storyIndex % 2}${isZoomed ? ' is-zoomed' : ''}`} style={{ touchAction: 'none' }} onPointerDown={storyPointerDown} onPointerMove={storyPointerMove} onPointerUp={storyPointerUp} onPointerCancel={cancelStoryPress}>
+        {story.mediaUrl && !brokenImages[story.id] && <img className="story-photo" style={{ transform: `scale(${zoomScale})`, transition: activePointersRef.current.size > 1 ? 'none' : 'transform .2s ease-out' }} src={story.mediaUrl} alt={story.caption} onError={() => setBrokenImages((current) => ({ ...current, [story.id]: true }))} />}
+        {(!story.mediaUrl || brokenImages[story.id]) && <div className="story-placeholder-art" style={{ transform: `scale(${zoomScale})` }}><span className="moon" /><span className="party-light light-one" /><span className="party-light light-two" /><span className="story-silhouette silhouette-one" /><span className="story-silhouette silhouette-two" />{storyIndex % 2 === 1 && <div className="couple-caption">J<span>&</span>A</div>}</div>}
         <div className="story-scrim" />
         <div className="story-progress-bars">{stories.map((item, index) => <div className="story-progress-track" key={item.id}><i style={{ width: `${index < storyIndex ? 100 : index === storyIndex ? progress * 100 : 0}%` }} /></div>)}</div>
         <div className="story-account"><div className="story-avatar"><span>J</span>{avatarUrl && <img src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</div><strong>{username}</strong><span>1 h</span><button className="story-menu" aria-label="Más opciones">•••</button></div>
-        <div className="story-hit-zones"><button aria-label="Historia anterior" onPointerDown={startStoryPress} onPointerUp={() => endStoryPress(-1)} onPointerCancel={cancelStoryPress} onClick={(event) => { if (event.detail === 0) changeStory(-1) }} /><button aria-label="Siguiente historia" onPointerDown={startStoryPress} onPointerUp={() => endStoryPress(1)} onPointerCancel={cancelStoryPress} onClick={(event) => { if (event.detail === 0) changeStory(1) }} /></div>
-        <button className="story-zoom" onClick={() => setZoomed((value) => !value)} aria-label={zoomed ? 'Alejar imagen' : 'Ampliar imagen'}>{zoomed ? '⊖' : '⌕'}</button>
+        <div className="story-hit-zones"><button aria-label="Historia anterior" onClick={(event) => { if (event.detail === 0) changeStory(-1) }} /><button aria-label="Siguiente historia" onClick={(event) => { if (event.detail === 0) changeStory(1) }} /></div>
         <div className="story-caption">{story.caption}</div>
         <div className="story-reply"><span>Enviar mensaje</span><button aria-label="Me gusta">♡</button><button aria-label="Compartir">➤</button></div>
-        {paused && <div className="story-paused-mark">Ⅱ</div>}
       </div>
       <div className="story-notch" />
     </div>
@@ -903,16 +1014,16 @@ function InstagramProfile({ username, avatarUrl, posts = julianPosts, clockTime 
   return <main className="story-screen">
     <section className="instagram-profile-frame">
       <div className="instagram-profile-status"><span>{clockTime}</span><span>●●●　◖　▰</span></div>
-      <header className="instagram-profile-toolbar"><button onClick={onHome} aria-label="Volver al panel">‹</button><strong>{username}</strong><button aria-label="Opciones">•••</button></header>
+      <header className="instagram-profile-toolbar"><button onClick={onHome} aria-label="Volver al panel"><ArrowLeft /></button><strong>{username}</strong><button aria-label="Opciones"><Menu /></button></header>
       <div className="instagram-profile-content">
-        <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span><i>▶</i></button><div className="instagram-profile-stats"><strong>Julián</strong><div><span><b>18</b> publicaciones</span><span><b>246</b> seguidores</span><span><b>318</b> seguidos</span></div></div></div>
+        <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span></button><div className="instagram-profile-stats"><strong>Julián</strong><div><span><b>18</b> publicaciones</span><span><b>246</b> seguidores</span><span><b>318</b> seguidos</span></div></div></div>
         <p className="instagram-profile-bio">Música, cine y alguna foto de madrugada.</p>
-        <div className="instagram-profile-actions"><button>Seguir</button><button>Mensaje</button><button aria-label="Compartir perfil">⌄</button></div>
+        <div className="instagram-profile-actions"><button>Seguir</button><button>Mensaje</button><button aria-label="Compartir perfil"><Share2 /></button></div>
         <button className="instagram-story-highlight" onClick={onOpenStories} aria-label="Abrir historias de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span><small>Historia</small></button>
-        <div className="instagram-profile-tabs"><span>▦</span><span>▣</span><span>♙</span></div>
-        <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}><span className="instagram-profile-grid-photo" role="img" aria-label={post.caption} style={{ backgroundImage: `url(${post.mediaUrl})`, backgroundPosition: `${post.position} center` }} /></button>)}</div>
+        <div className="instagram-profile-tabs"><span aria-label="Publicaciones"><Grid3X3 /></span><span aria-label="Videos"><Clapperboard /></span><span aria-label="Etiquetas"><UserRound /></span></div>
+        <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}><img className="instagram-profile-grid-photo" src={post.mediaUrl} alt={post.caption} /></button>)}</div>
       </div>
-      <div className="instagram-profile-bottom"><span>⌂</span><span>⌕</span><button onClick={onOpenStories} aria-label="Abrir historias"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span></button></div>
+      <div className="instagram-profile-bottom"><span aria-label="Inicio"><House /></span><span aria-label="Buscar"><Search /></span><button onClick={onOpenStories} aria-label="Perfil de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span></button></div>
       <div className="instagram-profile-home-indicator" />
     </section>
     <button className="story-back" onClick={onHome}>← Panel</button>
@@ -977,7 +1088,7 @@ function LockScreen({ onHome, wallpaperUrl = '', notifications = [], notificatio
     <div className="lock-notifications">{notifications.map((notification, index) => {
       const notificationKey = notification.id ?? `${notification.title}-${index}`
       if (index >= visibleNotificationCount || dismissedNotifications.has(notificationKey)) return null
-      return <article className="lock-notification" key={notificationKey} onPointerDown={(event) => startNotificationSwipe(event, notificationKey)} onPointerUp={(event) => endNotificationSwipe(event, notificationKey)} onPointerCancel={() => { notificationSwipeStart.current = null }}><span className={`notification-app-icon ${notification.kind === 'whatsapp' ? 'whatsapp' : ''}`}>{notification.kind === 'whatsapp' ? '◉' : '◈'}</span><div className="notification-copy"><div><strong>{notification.title}</strong><time>{notification.time ?? 'ahora'}</time></div><p>{notification.message}</p></div></article>
+      return <article className={`lock-notification${notification.kind === 'whatsapp' ? ' whatsapp-notification' : ''}`} key={notificationKey} onPointerDown={(event) => startNotificationSwipe(event, notificationKey)} onPointerUp={(event) => endNotificationSwipe(event, notificationKey)} onPointerCancel={() => { notificationSwipeStart.current = null }}><span className={`notification-app-icon ${notification.kind === 'whatsapp' ? 'whatsapp' : ''}`}>{notification.kind === 'whatsapp' ? '◉' : '◈'}</span><div className="notification-copy"><div><strong>{notification.title}</strong><time>{notification.time ?? 'ahora'}</time></div><p>{notification.message}</p></div></article>
     })}</div>
     <div className="lock-bottom"><span className="lock-shortcut">◉</span><span className="lock-hint"><i /> Deslizá hacia arriba para desbloquear</span><span className="lock-shortcut">◖</span></div>
   </main>
@@ -1002,8 +1113,11 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
   const [isRecording, setIsRecording] = useState(false)
   const [awaitingInterruptedRecording, setAwaitingInterruptedRecording] = useState(false)
   const [isScrollingMessages, setIsScrollingMessages] = useState(false)
+  const [dynamicCheckpointActive, setDynamicCheckpointActive] = useState(false)
+  const [dynamicWaitingForInput, setDynamicWaitingForInput] = useState(false)
   const scrollEndTimer = useRef(null)
   const checkpointTimers = useRef([])
+  const dynamicCursorRef = useRef(null)
   const replyTimer = useRef(null)
   const micPointerDown = useRef(false)
   const ignoreMicClick = useRef(false)
@@ -1026,59 +1140,99 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
     checkpointTimers.current.forEach(window.clearTimeout)
   }, [])
 
+  function scheduleCheckpoint(delay, callback) {
+    checkpointTimers.current.push(window.setTimeout(callback, delay))
+  }
+
+  function playDynamicSequenceFrom(index) {
+    if (index >= initialMessages.length) {
+      dynamicCursorRef.current = index
+      setIsTyping(false)
+      setDynamicWaitingForInput(false)
+      return
+    }
+
+    const message = initialMessages[index]
+    dynamicCursorRef.current = index
+    if (message.sender === 'me') {
+      setIsTyping(false)
+      setDynamicWaitingForInput(true)
+      return
+    }
+
+    setDynamicWaitingForInput(false)
+    setIsTyping(true)
+    const deliverMessage = () => {
+      setMessages((current) => [...current, message])
+      setIsTyping(false)
+      dynamicCursorRef.current = index + 1
+      scheduleCheckpoint(650, () => playDynamicSequenceFrom(index + 1))
+    }
+
+    if (message.id === 'full-personally-1') {
+      scheduleCheckpoint(950, () => setIsTyping(false))
+      scheduleCheckpoint(1550, () => setIsTyping(true))
+      scheduleCheckpoint(2800, deliverMessage)
+    } else scheduleCheckpoint(1150, deliverMessage)
+  }
+
+  function sendDynamicTurn() {
+    const startIndex = dynamicCursorRef.current
+    if (!dynamicWaitingForInput || startIndex == null) return
+
+    const outgoingMessages = []
+    let nextIndex = startIndex
+    while (nextIndex < initialMessages.length && initialMessages[nextIndex].sender === 'me') {
+      outgoingMessages.push(initialMessages[nextIndex])
+      nextIndex += 1
+    }
+    if (!outgoingMessages.length) return
+
+    setDraft('')
+    setDynamicWaitingForInput(false)
+    dynamicCursorRef.current = nextIndex
+    let outgoingIndex = 0
+    const deliverNextOutgoing = () => {
+      setMessages((current) => [...current, outgoingMessages[outgoingIndex]])
+      outgoingIndex += 1
+      if (outgoingIndex < outgoingMessages.length) scheduleCheckpoint(450, deliverNextOutgoing)
+      else scheduleCheckpoint(650, () => playDynamicSequenceFrom(nextIndex))
+    }
+    deliverNextOutgoing()
+  }
+
   function setCheckpoint(messageIndex) {
     const checkpoint = messages[messageIndex]
     if (!checkpoint) return
     const sourceIndex = initialMessages.findIndex((message) => message.id === checkpoint.id)
-    const following = dynamicReplay && sourceIndex >= 0
-      ? initialMessages.slice(sourceIndex + 1)
-      : checkpoint.id === 'full-pickup-audio' ? messages.slice(messageIndex + 1, messageIndex + 3) : []
     checkpointTimers.current.forEach(window.clearTimeout)
     checkpointTimers.current = []
     setMessages((current) => current.slice(0, messageIndex + 1))
     setIsTyping(false)
-    if (!following.length) return
-
-    const schedule = (delay, callback) => checkpointTimers.current.push(window.setTimeout(callback, delay))
-    if (!dynamicReplay) {
-      setIsTyping(true)
-      schedule(900, () => setIsTyping(false))
-      schedule(1450, () => setIsTyping(true))
-      schedule(2550, () => {
-        setMessages((current) => [...current, following[0]])
-        setIsTyping(false)
-      })
-      schedule(3100, () => setIsTyping(true))
-      schedule(4200, () => {
-        setMessages((current) => [...current, following[1]])
-        setIsTyping(false)
-      })
+    setDraft('')
+    if (dynamicReplay && sourceIndex >= 0) {
+      setDynamicCheckpointActive(true)
+      setDynamicWaitingForInput(false)
+      dynamicCursorRef.current = sourceIndex + 1
+      playDynamicSequenceFrom(sourceIndex + 1)
       return
     }
 
-    function playNext(index) {
-      if (index >= following.length) {
-        setIsTyping(false)
-        return
-      }
-      const message = following[index]
-      const appendMessage = () => {
-        setMessages((current) => [...current, message])
-        setIsTyping(false)
-        schedule(message.sender === 'contact' ? 650 : 350, () => playNext(index + 1))
-      }
+    const following = checkpoint.id === 'full-pickup-audio' ? messages.slice(messageIndex + 1, messageIndex + 3) : []
+    if (!following.length) return
 
-      if (message.id === 'full-personally-1') {
-        setIsTyping(true)
-        schedule(950, () => setIsTyping(false))
-        schedule(1550, () => setIsTyping(true))
-        schedule(2800, appendMessage)
-      } else {
-        if (message.sender === 'contact') setIsTyping(true)
-        schedule(message.sender === 'contact' ? 1150 : 650, appendMessage)
-      }
-    }
-    playNext(0)
+    setIsTyping(true)
+    scheduleCheckpoint(900, () => setIsTyping(false))
+    scheduleCheckpoint(1450, () => setIsTyping(true))
+    scheduleCheckpoint(2550, () => {
+      setMessages((current) => [...current, following[0]])
+      setIsTyping(false)
+    })
+    scheduleCheckpoint(3100, () => setIsTyping(true))
+    scheduleCheckpoint(4200, () => {
+      setMessages((current) => [...current, following[1]])
+      setIsTyping(false)
+    })
   }
 
   function openContactSheet() {
@@ -1104,6 +1258,11 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
   function sendMessage() {
     const text = draft.trim()
     if (!text || isTyping) return
+    if (dynamicReplay) {
+      if (!dynamicCheckpointActive || !dynamicWaitingForInput) return
+      sendDynamicTurn()
+      return
+    }
     setDraft('')
     if (!openingReplyPending) {
       setMessages((current) => [...current, { id: `martina-${Date.now()}`, sender: 'me', text, timestamp: '09:53', status: 'read' }])
@@ -1123,6 +1282,7 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
   }
 
   function sendAudio() {
+    if (dynamicReplay) return
     if (!interactive) {
       if (isTyping) return
       setMessages((current) => [...current, { id: `martina-audio-${Date.now()}`, sender: 'me', audioDuration: '0:04', timestamp: 'ahora', status: 'read' }])
@@ -1201,23 +1361,89 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
   }
 
   const visibleMessages = messages
+  const dynamicComposerDisabled = dynamicReplay && (!dynamicCheckpointActive || !dynamicWaitingForInput)
+  const composerPlaceholder = dynamicReplay
+    ? !dynamicCheckpointActive ? 'Elegí un mensaje para continuar' : dynamicWaitingForInput ? 'Mensaje' : 'Esperá la secuencia…'
+    : 'Mensaje'
 
   return <main className="chat-screen">
     <div className="chat-phone">
-      <div className="chat-status"><span>{statusTime}</span><span>●●●　◖　▰</span></div>
+      <div className="chat-status"><span>{statusTime}</span><PhoneStatusIcons /></div>
       <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver" onClick={() => setHeaderTaps((count) => count + 1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><button type="button" className="chat-contact chat-contact-trigger" onClick={openContactSheet} aria-label={displayName ? `Editar contacto ${displayName}` : `Agendar ${contactPhone}`}><strong>{displayName || contactPhone}</strong><small>{displayName ? contactPhone : 'últ. vez hoy a las 09:39'}</small></button><button aria-label="Videollamada"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10-5-3v10l5-3z"/></svg></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button><button aria-label="Opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></header>
-      <div className={`chat-messages-area${isScrollingMessages ? ' is-scrolling' : ''}`} onScroll={handleMessagesScroll}>{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message, reversedIndex) => { const messageIndex = visibleMessages.length - 1 - reversedIndex; return <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}${interactive ? '' : ' is-previewable'}`} key={message.id} onClick={!interactive ? () => setCheckpoint(messageIndex) : undefined}><WhatsAppMessageBubble message={message} broken={brokenImages[message.id]} onImageError={() => setBrokenImages((current) => ({ ...current, [message.id]: true }))} showTimestamp={interactive || Boolean(message.timestamp)} /></div>})}{interactive && <div className="chat-date-divider">HOY</div>}</div>
-      {showComposer && <div className="chat-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input">{isRecording ? <div className="chat-recording-active"><i /> Grabando audio... <span>soltá para cancelar</span></div> : <><input className="chat-message-input" aria-label="Mensaje" placeholder="Mensaje" value={draft} disabled={isTyping} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendMessage() } }} /><button className="composer-sticker" aria-label="Stickers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v9l-6 6H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 20v-5a2 2 0 0 1 2-2h4"/></svg></button></>}</div><button className="composer-camera" aria-label="Cámara"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11H3V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button className={`composer-audio${isRecording ? ' is-recording' : ''}`} aria-label={awaitingInterruptedRecording ? 'Mantener para grabar audio' : draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping || (interactive && !draft.trim() && !canSendAudio && !awaitingInterruptedRecording)} onPointerDown={beginInterruptedRecording} onPointerUp={endInterruptedRecording} onPointerCancel={endInterruptedRecording} onClick={handleMicClick}>{draft.trim() && !awaitingInterruptedRecording ? <Send /> : <Mic />}</button></div>}
+      <div className={`chat-messages-area${isScrollingMessages ? ' is-scrolling' : ''}`} onScroll={handleMessagesScroll}>{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message, reversedIndex) => { const messageIndex = visibleMessages.length - 1 - reversedIndex; return <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}`} key={message.id}><WhatsAppMessageBubble message={message} broken={brokenImages[message.id]} onImageError={() => setBrokenImages((current) => ({ ...current, [message.id]: true }))} showTimestamp={interactive || Boolean(message.timestamp)} previewable={!interactive} onClick={!interactive ? () => setCheckpoint(messageIndex) : undefined} /></div>})}{interactive && <div className="chat-date-divider">HOY</div>}</div>
+      {showComposer && <div className="chat-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input">{isRecording ? <div className="chat-recording-active"><i /> Grabando audio... <span>soltá para cancelar</span></div> : <><input className="chat-message-input" aria-label="Mensaje" placeholder={composerPlaceholder} value={draft} disabled={isTyping || dynamicComposerDisabled} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendMessage() } }} /><button className="composer-sticker" aria-label="Stickers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v9l-6 6H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 20v-5a2 2 0 0 1 2-2h4"/></svg></button></>}</div><button className="composer-camera" aria-label="Cámara"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11H3V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button className={`composer-audio${isRecording ? ' is-recording' : ''}`} aria-label={awaitingInterruptedRecording ? 'Mantener para grabar audio' : draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping || dynamicComposerDisabled || (dynamicReplay && !draft.trim()) || (interactive && !draft.trim() && !canSendAudio && !awaitingInterruptedRecording)} onPointerDown={beginInterruptedRecording} onPointerUp={endInterruptedRecording} onPointerCancel={endInterruptedRecording} onClick={handleMicClick}>{draft.trim() && !awaitingInterruptedRecording ? <Send /> : <Mic />}</button></div>}
       {isContactSheetOpen && <div className="contact-sheet-overlay" onClick={() => setIsContactSheetOpen(false)}><section className="contact-sheet" role="dialog" aria-modal="true" aria-labelledby="contact-sheet-title" onClick={(event) => event.stopPropagation()}><div className="contact-sheet-grabber"/><header><button type="button" onClick={() => setIsContactSheetOpen(false)}>Cancelar</button><strong id="contact-sheet-title">{displayName ? 'Editar contacto' : 'Nuevo contacto'}</strong><button type="button" className="contact-save" disabled={!contactDraft.trim()} onClick={saveContact}>Guardar</button></header><label>Nombre<input value={contactDraft} placeholder="Escribí el nombre" autoFocus onChange={(event) => setContactDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') saveContact() }} /></label><label>Teléfono<input value={contactPhone} readOnly /></label>{displayName && <button type="button" className="contact-delete" onClick={deleteContact}>Eliminar contacto</button>}</section></div>}
       <div className="chat-home-indicator" />
     </div>
   </main>
 }
 
-function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada entrante', avatarUrl = '', onReject, onAccept }) {
+function CallSlideControl({ action, label, onAction, onTap }) {
+  const [offsetY, setOffsetY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const gestureStart = useRef(null)
+  const ignoreNextClick = useRef(false)
+  const actionTimer = useRef(null)
+
+  useEffect(() => () => window.clearTimeout(actionTimer.current), [])
+
+  function handlePointerDown(event) {
+    if (event.button !== 0) return
+    gestureStart.current = { x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    setOffsetY(0)
+    setIsDragging(true)
+  }
+
+  function handlePointerMove(event) {
+    if (!gestureStart.current) return
+    const deltaY = Math.min(0, event.clientY - gestureStart.current.y)
+    setOffsetY(Math.max(-88, deltaY))
+  }
+
+  function handlePointerUp(event) {
+    const start = gestureStart.current
+    gestureStart.current = null
+    setIsDragging(false)
+    if (!start) return
+    const deltaX = event.clientX - start.x
+    const deltaY = event.clientY - start.y
+    const isSwipe = Math.abs(deltaY) > 12 || Math.abs(deltaX) > 12
+    ignoreNextClick.current = isSwipe
+    if (deltaY <= -62 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2) {
+      setOffsetY(-88)
+      actionTimer.current = window.setTimeout(onAction, 190)
+    } else setOffsetY(0)
+    if (isSwipe) window.setTimeout(() => { ignoreNextClick.current = false }, 0)
+  }
+
+  function handlePointerCancel() {
+    gestureStart.current = null
+    setIsDragging(false)
+    setOffsetY(0)
+    ignoreNextClick.current = false
+  }
+
+  function handleClick() {
+    if (ignoreNextClick.current) {
+      ignoreNextClick.current = false
+      return
+    }
+    onTap()
+  }
+
+  return <div className={`call-action-group call-slide-group call-slide-${action}${isDragging ? ' is-dragging' : ''}`}>
+    <span className="call-slide-cue" aria-hidden="true"><i>↑</i></span>
+    <button className={`call-action ${action}`} onClick={handleClick} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancel} style={{ transform: `translateY(${offsetY}px)` }} aria-label={`${label}. Deslizá hacia arriba o tocá para ${label.toLowerCase()}`}><svg className={`call-handset ${action === 'reject' ? 'decline' : 'answer'}`} viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z" /></svg></button>
+    <small>{label}</small>
+  </div>
+}
+
+function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada entrante', avatarUrl = '', clockTime = '01:32', onReject, onAccept }) {
   const [callState, setCallState] = useState('ringing')
   const [seconds, setSeconds] = useState(0)
   const [returnTaps, setReturnTaps] = useState(0)
+  const [showEndedMessage, setShowEndedMessage] = useState(false)
   useEffect(() => {
     const onKeyDown = (event) => { if (event.key === 'Escape') onHome() }
     window.addEventListener('keydown', onKeyDown)
@@ -1228,9 +1454,15 @@ function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada
     const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000)
     return () => window.clearInterval(timer)
   }, [callState])
+  useEffect(() => {
+    if (callState !== 'ended') return undefined
+    const timer = window.setTimeout(() => setShowEndedMessage(false), 3000)
+    return () => window.clearTimeout(timer)
+  }, [callState])
   useEffect(() => { if (returnTaps >= 3) onHome() }, [returnTaps, onHome])
 
   function rejectCall() {
+    setShowEndedMessage(true)
     setCallState('ended')
     onReject?.()
   }
@@ -1240,12 +1472,12 @@ function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada
   }
   const duration = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
-  if (callState === 'ended') return <main className="call-cut-screen" aria-label="Llamada finalizada"><button onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver al panel" /></main>
+  if (callState === 'ended') return <main className="call-cut-screen" aria-label="Llamada finalizada">{showEndedMessage && <p className="call-ended-message" role="status">Llamada finalizada</p>}<button onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver al panel" /></main>
   return <main className="incoming-call-screen">
     <div className="call-wallpaper" />
-    <div className="call-status"><span>02:14</span><span>●●●　◖　▰</span></div>
+    <div className="call-status"><span>{clockTime}</span></div>
     <div className="call-identity"><div className="call-avatar">{avatarUrl && <img src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}<span>J</span></div><h1>{callerName}</h1><p>{callState === 'connected' ? duration : callerSubtext}</p></div>
-    <div className="call-actions">{callState === 'ringing' ? <><div className="call-action-group"><button className="call-action reject" onClick={rejectCall} aria-label="Rechazar llamada"><svg className="call-handset decline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z"/></svg></button><small>Rechazar</small></div><div className="call-action-group"><button className="call-action accept" onClick={acceptCall} aria-label="Aceptar llamada"><svg className="call-handset answer" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z"/></svg></button><small>Aceptar</small></div></> : <><div className="call-action-group"><button className="call-action connected-control" aria-label="Silenciar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg></button><small>Silenciar</small></div><div className="call-action-group"><button className="call-action connected-control" aria-label="Altavoz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9a5 5 0 0 1 0 6m2.5-9a9 9 0 0 1 0 12"/></svg></button><small>Altavoz</small></div><div className="call-action-group"><button className="call-action reject" onClick={rejectCall} aria-label="Finalizar llamada"><svg className="call-handset decline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z"/></svg></button><small>Finalizar</small></div></>}</div>
+    <div className="call-actions">{callState === 'ringing' ? <><CallSlideControl action="reject" label="Rechazar" onAction={rejectCall} onTap={rejectCall} /><CallSlideControl action="accept" label="Aceptar" onAction={acceptCall} onTap={acceptCall} /></> : <><div className="call-action-group"><button className="call-action connected-control" aria-label="Silenciar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg></button><small>Silenciar</small></div><div className="call-action-group"><button className="call-action connected-control" aria-label="Altavoz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9a5 5 0 0 1 0 6m2.5-9a9 9 0 0 1 0 12"/></svg></button><small>Altavoz</small></div><div className="call-action-group"><button className="call-action reject" onClick={rejectCall} aria-label="Finalizar llamada"><svg className="call-handset decline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z"/></svg></button><small>Finalizar</small></div></>}</div>
     <button className="call-return-hotspot" onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver al panel" />
   </main>
 }

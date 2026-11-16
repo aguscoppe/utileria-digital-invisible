@@ -20,3 +20,18 @@
 .assistant-sequence-copy{width:100%;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center}.assistant-sequence-text.completed,.assistant-sequence-text.active{min-height:0;animation:assistant-phrase-enter .25s ease-out both}.assistant-sequence-text.completed{opacity:.7;font-size:clamp(16px,2.2vw,23px)}@keyframes assistant-phrase-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .assistant-sequence-text .type-cursor{animation-duration:1s}
 .terminal-output.assistant-sequence{grid-template-rows:112px minmax(76px,auto) 14px}
+/* Scale the phone mockups up modestly on large displays while keeping each original ratio. */
+@media(min-width:1200px) and (min-height:850px){
+  .story-frame,.chat-phone,.lock-screen,.incoming-call-screen,.call-cut-screen{width:min(88vw,50.625vh,520px);height:min(90vh,156.44vw,924px)}
+  .mobile-ai-phone{width:min(100vw,50.6vh,516px);height:min(100vh,197.67vw,1020px)}
+}
+
+/* On phones and small tablets, show mobile scenes as full-screen apps. */
+@media(max-width:900px){
+  .story-screen,.chat-screen,.mobile-ai-screen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;min-height:0;display:block;overflow:hidden}
+  .story-frame,.instagram-profile-frame,.chat-phone,.mobile-ai-phone{position:absolute;inset:0;width:100%;height:100%;max-width:none;border:0;border-radius:0;box-shadow:none}
+  .lock-screen,.incoming-call-screen,.call-cut-screen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;min-height:0;margin:0;transform:none;border:0;border-radius:0}
+}
+
+.story-media .story-progress-bars,.story-media .story-account,.story-media .story-hit-zones,.story-media .story-caption,.story-media .story-reply,.story-media .story-scrim,.story-frame .story-notch,.story-screen .story-back{transition:opacity .18s ease}
+.story-media.is-zoomed .story-progress-bars,.story-media.is-zoomed .story-account,.story-media.is-zoomed .story-hit-zones,.story-media.is-zoomed .story-caption,.story-media.is-zoomed .story-reply,.story-media.is-zoomed .story-scrim,.story-frame.is-zoomed .story-notch,.story-screen.story-is-zoomed .story-back{opacity:0;pointer-events:none}
