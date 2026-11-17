@@ -1,0 +1,2 @@
+.scene-groups{display:grid;gap:28px}.scene-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:0}.scene-group-heading h3{margin:0;color:#c5d27d;font:600 10px ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase}.scene-group-heading>span{color:#85877b;font:9px ui-monospace,monospace;letter-spacing:.04em}.scene-group .scene-grid{margin:0}
+@media(max-width:600px){.scene-groups{gap:24px}.scene-group-heading{margin-bottom:8px}}

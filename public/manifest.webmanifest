@@ -1,0 +1,16 @@
+{
+  "name": "Utilería Digital — Invisible",
+  "short_name": "Utilería",
+  "description": "Pantallas de utilería digital para rodaje",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#11120f",
+  "theme_color": "#11120f",
+  "icons": [
+    { "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

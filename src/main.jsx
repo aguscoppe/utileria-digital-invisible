@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Apple, FolderOpen, StickyNote, Music2, Wifi, Search, BatteryFull, Signal, ShieldCheck, SkipBack, SkipForward, Pause, Play, Mail, Images, Settings, Minus, X, Maximize2, Minimize2, Send, Mic, Square, ArrowLeft, Menu, Grid3X3, Clapperboard, UserRound, House, Share2 } from 'lucide-react'
+import config from './config.js'
+import { Apple, FolderOpen, StickyNote, Music2, Wifi, Search, BatteryFull, Signal, ShieldCheck, SkipBack, SkipForward, Pause, Play, Mail, Images, Settings, Minus, X, Maximize2, Minimize2, Send, Mic, Square, ArrowLeft, Menu, Grid3X3, Clapperboard, UserRound, House, Share2, Video } from 'lucide-react'
 import '@fontsource/inter/latin-400.css'
 import '@fontsource/inter/latin-500.css'
 import '@fontsource/inter/latin-600.css'
 import '@fontsource/inter/latin-700.css'
 import './styles.css'
+import './scene-groups.css'
 import './desktop.css'
 import './mail.css'
 import './terminal.css'
@@ -14,6 +16,7 @@ import './lock.css'
 import './chat.css'
 import './ai-chat.css'
 import './asset-placeholders.css'
+import './upload-toast.css'
 import './call.css'
 import './aspect-ratio-fixes.css'
 
@@ -135,8 +138,8 @@ const fullJulianConversation = [
   { id: 'full-night-beautiful', sender: 'contact', text: 'Hasta durmiendo sos hermosa <3' },
 ]
 const assets = {
-  julianAvatar: '/assets/julian_profile.jpg',
-  julianProfilePosts: '/assets/julian_profile_posts.png',
+  julianInstagramAvatar: '/assets/julian_profile_instagram.jpg',
+  julianWhatsappAvatar: '/assets/julian_profile_whatsapp.jpg',
   halloweenStory: '/assets/party_halloween.jpg',
   agustinaStory: '/assets/agustina_julian_party.jpg',
   desktopWallpaper: '/assets/martina_wallpaper_desktop.jpg',
@@ -164,29 +167,83 @@ const promoEmails = [
   { sender: 'Nube Social', avatar: 'N', color: '#a36e91', time: 'SÁB', subject: 'Tu resumen de la semana', preview: 'Así fue tu actividad en Nube Social.' },
 ]
 const managedFiles = [
-  { id: 'julian-profile', filename: 'julian_profile.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
-  { id: 'party-halloween', filename: 'party_halloween.jpg', label: 'Historia de Halloween', accept: 'image/*' },
-  { id: 'agustina-julian-party', filename: 'agustina_julian_party.jpg', label: 'Historia con Agustina y Julián', accept: 'image/*' },
-  { id: 'martina-wallpaper-desktop', filename: 'martina_wallpaper_desktop.jpg', label: 'Fondo de pantalla de computadora', accept: 'image/*' },
-  { id: 'martina-wallpaper-mobile', filename: 'martina_wallpaper_mobile.jpg', label: 'Fondo de pantalla del celular', accept: 'image/*' },
-  { id: 'martina-mirror-selfie', filename: 'martina_mirror_selfie.jpg', label: 'Selfie de Martina en el espejo · WhatsApp', accept: 'image/*' },
-  { id: 'mail-video', filename: 'video_01.mp4', label: 'Video de Martina durmiendo · adjunto del mail', accept: 'video/mp4,video/*' },
-  { id: 'crown-photo', filename: 'crown_photo.jpg', label: 'Foto de la corona en WhatsApp', accept: 'image/*' },
-  { id: 'emily-costume', filename: 'emily_costume.jpg', label: 'Foto del disfraz en WhatsApp', accept: 'image/*' },
+  { id: 'julian-profile-instagram', group: 'celular', subgroup: 'Instagram', filename: 'julian_profile_instagram.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
+  { id: 'julian-profile-whatsapp', group: 'celular', subgroup: 'WhatsApp', filename: 'julian_profile_whatsapp.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
+  { id: 'party-halloween', group: 'celular', subgroup: 'Instagram', filename: 'party_halloween.jpg', label: 'Historia de Halloween', accept: 'image/*' },
+  { id: 'agustina-julian-party', group: 'celular', subgroup: 'Instagram', filename: 'agustina_julian_party.jpg', label: 'Historia con Agustina y Julián', accept: 'image/*' },
+  { id: 'martina-wallpaper-desktop', group: 'computadora', filename: 'martina_wallpaper_desktop.jpg', label: 'Fondo de pantalla', accept: 'image/*' },
+  { id: 'martina-wallpaper-mobile', group: 'celular', filename: 'martina_wallpaper_mobile.jpg', label: 'Fondo de pantalla', accept: 'image/*' },
+  { id: 'martina-mirror-selfie', group: 'celular', subgroup: 'WhatsApp', filename: 'martina_mirror_selfie.jpg', label: 'Selfie en el espejo', accept: 'image/*' },
+  { id: 'mail-video', group: 'computadora', filename: 'video_01.mp4', label: 'Video de Martina durmiendo', accept: 'video/mp4,video/*' },
+  { id: 'crown-photo', group: 'celular', subgroup: 'WhatsApp', filename: 'crown_photo.jpg', label: 'Foto de la corona', accept: 'image/*' },
+  { id: 'emily-costume', group: 'celular', subgroup: 'WhatsApp', filename: 'emily_costume.jpg', label: 'Foto del disfraz', accept: 'image/*' },
 ]
+const assetGroups = [
+  { id: 'computadora', label: 'Computadora' },
+  { id: 'celular', label: 'Celular' },
+]
+
+const imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'svg']
+
+function FlexibleAssetImage({ src, onError, ...imageProps }) {
+  const candidates = React.useMemo(() => {
+    if (!src || !src.startsWith('/assets/')) return [src]
+    const base = src.replace(/\.[^/.?]+(?=\?|$)/, '')
+    return [...new Set([src, ...imageExtensions.map((extension) => `${base}.${extension}`)])]
+  }, [src])
+  const [candidateIndex, setCandidateIndex] = useState(0)
+  useEffect(() => setCandidateIndex(0), [src])
+  return <img {...imageProps} src={candidates[candidateIndex] || src} onError={(event) => {
+    if (candidateIndex + 1 < candidates.length) setCandidateIndex(candidateIndex + 1)
+    else onError?.(event)
+  }} />
+}
 
 function AssetUploadSection() {
   const [fileSizes, setFileSizes] = useState({})
   const [uploading, setUploading] = useState('')
-  const [message, setMessage] = useState('')
-  const [messageIsError, setMessageIsError] = useState(false)
+  const [notice, setNotice] = useState(null)
+  const [hasPendingRefresh, setHasPendingRefresh] = useState(() => {
+    try { return window.localStorage.getItem('asset-refresh-pending') === '1' } catch { return false }
+  })
+  const noticeTimer = useRef(null)
+  const displayFilename = (asset) => asset.filename.replace(/\.[^.]+$/, '')
+
+  function showNotice(type, title, detail) {
+    window.clearTimeout(noticeTimer.current)
+    setNotice({ type, title, detail })
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 7000)
+  }
+
+  useEffect(() => () => window.clearTimeout(noticeTimer.current), [])
 
   useEffect(() => {
     fetch('/__asset-manager/status').then((response) => {
-      if (!response.ok) throw new Error('No se pudo consultar el estado de los archivos')
+      if (!response.ok) throw new Error('El servidor de archivos no respondió')
       return response.json()
-    }).then(setFileSizes).catch(() => setMessage('No se pudo consultar el estado de los archivos. Abrí el proyecto con npm run dev.'))
+    }).then(setFileSizes).catch(() => showNotice('error', 'Carga de archivos no disponible', 'No se pudo conectar con el servidor del proyecto. Iniciá npm run dev y abrí la app desde esa dirección.'))
   }, [])
+
+  function explainUploadError(error, asset) {
+    const detail = String(error.message || '')
+    if (error.status === 413 || /supera el límite de 100 MB/i.test(detail)) return 'El archivo supera el límite de 100 MB. Elegí una versión más liviana.'
+    if (/foto de origen está vacía/i.test(detail)) return 'La otra foto de perfil todavía no está cargada.'
+    if (error.status === 415 || /imagen JPEG válida|video MP4 válido/i.test(detail)) {
+      return asset.id === 'mail-video'
+        ? 'El video no tiene un formato MP4 compatible o está dañado. Exportalo como MP4 y volvé a intentar.'
+        : 'No se pudo convertir la foto a JPEG. Probá con una imagen JPG, PNG o HEIC que el teléfono pueda abrir.'
+    }
+    if (error.status === 400 || /archivo está vacío/i.test(detail)) return 'El archivo llegó vacío o la transferencia se interrumpió. Seleccionalo otra vez.'
+    if (error.status === 404) return 'No se encontró el destino de este archivo en el proyecto. Recargá la página y volvé a intentar.'
+    if (/ENOSPC/i.test(detail)) return 'La computadora no tiene espacio libre suficiente para guardar el archivo.'
+    if (/EACCES|EPERM/i.test(detail)) return 'El proyecto no tiene permiso para escribir en public/assets. Revisá los permisos de esa carpeta.'
+    if (error.status >= 500) return 'El servidor no pudo guardar el archivo. Revisá que el proyecto tenga espacio y permisos de escritura.'
+    if (error instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(detail)) return 'Se perdió la conexión con la computadora. Mantené npm run dev abierto y conectá el teléfono a la misma red.'
+    if (/no pudo abrir esta foto|no pudo leer las dimensiones/i.test(detail)) return 'El teléfono no puede leer este formato. Exportá la imagen como JPG o PNG y probá de nuevo.'
+    if (/no se pudo convertir|preparar la foto|contexto 2d/i.test(detail)) return 'El teléfono no pudo preparar la imagen. Probá con una foto de menor tamaño o guardada como JPG.'
+    if (/video|MP4/i.test(detail)) return 'No se pudo leer el video. Confirmá que sea un MP4 válido y volvé a seleccionarlo.'
+    return detail || 'Ocurrió un error inesperado. Volvé a seleccionar el archivo.'
+  }
 
   async function prepareAssetFile(asset, file) {
     if (!file.size) throw new Error('El archivo está vacío')
@@ -244,22 +301,22 @@ function AssetUploadSection() {
 
   async function uploadFile(asset, file) {
     setUploading(asset.id)
-    setMessage('')
-    setMessageIsError(false)
+    setNotice(null)
     try {
       const uploadFileData = await prepareAssetFile(asset, file)
       const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', headers: { 'Content-Type': uploadFileData.type || 'application/octet-stream' }, body: uploadFileData })
-      if (!response.ok) throw new Error(await response.text())
+      if (!response.ok) {
+        const error = new Error(await response.text())
+        error.status = response.status
+        throw error
+      }
       const result = await response.json()
       setFileSizes((current) => ({ ...current, [asset.id]: result.size }))
-      setMessage(`${asset.filename} quedó guardado con el nombre correcto`)
-      window.setTimeout(() => window.location.reload(), 1200)
+      setHasPendingRefresh(true)
+      try { window.localStorage.setItem('asset-refresh-pending', '1') } catch {}
+      showNotice('success', 'Archivo subido', `${displayFilename(asset)} se guardó correctamente. Tocá «Actualizar vistas» para recargar las escenas con el archivo nuevo.`)
     } catch (error) {
-      setMessageIsError(true)
-      const detail = error instanceof TypeError && error.message === 'Failed to fetch'
-        ? 'No se pudo conectar con el servidor del proyecto. Abrí la app desde la dirección de red de la computadora y mantené npm run dev ejecutándose.'
-        : error.message
-      setMessage(`No se pudo guardar ${asset.filename}: ${detail}`)
+      showNotice('error', `No se pudo subir ${displayFilename(asset)}`, explainUploadError(error, asset))
     } finally {
       setUploading('')
     }
@@ -267,39 +324,84 @@ function AssetUploadSection() {
 
   async function resetFile(asset) {
     setUploading(asset.id)
-    setMessage('')
-    setMessageIsError(false)
+    setNotice(null)
     try {
       const response = await fetch(`/__asset-manager/reset/${asset.id}`, { method: 'POST' })
-      if (!response.ok) throw new Error(await response.text())
+      if (!response.ok) {
+        const error = new Error(await response.text())
+        error.status = response.status
+        throw error
+      }
       setFileSizes((current) => ({ ...current, [asset.id]: 0 }))
-      setMessage(`${asset.filename} volvió al placeholder vacío`)
-      window.setTimeout(() => window.location.reload(), 1200)
+      setHasPendingRefresh(true)
+      try { window.localStorage.setItem('asset-refresh-pending', '1') } catch {}
+      showNotice('success', 'Placeholder restaurado', `${displayFilename(asset)} volvió a quedar vacío. Tocá «Actualizar vistas» para recargar las escenas.`)
     } catch (error) {
-      setMessageIsError(true)
-      setMessage(`No se pudo restaurar ${asset.filename}: ${error.message}. Abrí el proyecto con npm run dev.`)
+      showNotice('error', `No se pudo restaurar ${displayFilename(asset)}`, explainUploadError(error, asset))
     } finally {
       setUploading('')
     }
   }
 
-  const changed = Object.values(fileSizes).some((size) => size > 0)
-  return <section className="asset-upload-section" aria-label="Carga de archivos">
-    <div className="asset-upload-heading"><div><p className="eyebrow">ARCHIVOS DEL PROYECTO</p><h2>Carga de archivos</h2><p>Elegí el archivo y se guardará en <code>public/</code> con el nombre que usa la utilería.</p></div>{changed && <button type="button" className="asset-reload-button" onClick={() => window.location.reload()}>Actualizar vistas</button>}</div>
-    <div className="asset-upload-list">{managedFiles.map((asset) => {
+  async function useOtherProfilePhoto(target, source) {
+    setUploading(target.id)
+    setNotice(null)
+    try {
+      const response = await fetch(`/__asset-manager/copy-profile/${target.id}/${source.id}`, { method: 'POST' })
+      if (!response.ok) {
+        const error = new Error(await response.text())
+        error.status = response.status
+        throw error
+      }
+      const result = await response.json()
+      setFileSizes((current) => ({ ...current, [target.id]: result.size }))
+      setHasPendingRefresh(true)
+      try { window.localStorage.setItem('asset-refresh-pending', '1') } catch {}
+      showNotice('success', 'Foto de perfil reutilizada', `La foto de ${source.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'} también se usará en ${target.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'}.`)
+    } catch (error) {
+      showNotice('error', 'No se pudo reutilizar la foto', explainUploadError(error, target))
+    } finally {
+      setUploading('')
+    }
+  }
+
+  function renderAssetRows(files) {
+    return <div className="asset-upload-list">{files.map((asset) => {
       const size = fileSizes[asset.id] || 0
+      const counterpartId = asset.id === 'julian-profile-instagram' ? 'julian-profile-whatsapp' : asset.id === 'julian-profile-whatsapp' ? 'julian-profile-instagram' : ''
+      const counterpart = managedFiles.find((candidate) => candidate.id === counterpartId)
+      const canUseCounterpart = counterpart && !size && fileSizes[counterpart.id] > 0
       return <article className="asset-upload-row" key={asset.id}>
-        <div className="asset-upload-info"><strong>{asset.label}</strong><code>{asset.filename}</code><small>{size ? `${(size / 1024 / 1024).toFixed(size < 1024 * 1024 ? 0 : 1)} MB · archivo cargado` : 'Placeholder vacío'}</small></div>
-        <label className="asset-file-picker">{uploading === asset.id ? 'Guardando…' : 'Elegir archivo'}<input type="file" accept={asset.id === 'mail-video' ? 'video/mp4' : 'image/*'} disabled={Boolean(uploading)} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(asset, file); event.target.value = '' }} /></label>
-        <button type="button" className="asset-reset-button" disabled={!size || Boolean(uploading)} onClick={() => resetFile(asset)}>Restaurar vacío</button>
+        <div className="asset-upload-info"><strong>{asset.label}</strong><code>{displayFilename(asset)}</code><small>{size ? `${(size / 1024 / 1024).toFixed(size < 1024 * 1024 ? 0 : 1)} MB · archivo cargado` : 'Placeholder vacío'}</small></div>
+        <div className="asset-upload-actions">
+          <label className="asset-file-picker">{uploading === asset.id ? 'Guardando…' : 'Elegir archivo'}<input type="file" accept={asset.id === 'mail-video' ? 'video/mp4' : 'image/*'} disabled={Boolean(uploading)} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(asset, file); event.target.value = '' }} /></label>
+          {canUseCounterpart && <button type="button" className="asset-copy-profile-button" disabled={Boolean(uploading)} onClick={() => useOtherProfilePhoto(asset, counterpart)}>Usar foto de {counterpart.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'}</button>}
+          <button type="button" className="asset-reset-button" disabled={!size || Boolean(uploading)} onClick={() => resetFile(asset)}>Restaurar vacío</button>
+        </div>
       </article>
     })}</div>
-    {message && <p className="asset-upload-message" style={messageIsError ? { color: '#ffaaa3' } : undefined} role={messageIsError ? 'alert' : 'status'}>{message}</p>}
+  }
+
+  return <section className="asset-upload-section" aria-label="Carga de archivos">
+    <div className="asset-upload-heading"><div><p className="eyebrow">ARCHIVOS DEL PROYECTO</p><h2>Carga de archivos</h2><p>Los archivos se guardan en <code>public/assets/</code>. Después de cargar o restaurar uno, tocá «Actualizar vistas» para recargar las escenas con el cambio.</p></div>{hasPendingRefresh && <button type="button" className="asset-reload-button" onClick={() => { try { window.localStorage.removeItem('asset-refresh-pending') } catch {}; window.location.reload() }}>Actualizar vistas</button>}</div>
+    <div className="asset-upload-groups">{assetGroups.map((group) => {
+      const groupFiles = managedFiles.filter((asset) => asset.group === group.id)
+      const generalFiles = groupFiles.filter((asset) => !asset.subgroup)
+      const subgroups = [...new Set(groupFiles.map((asset) => asset.subgroup).filter(Boolean))]
+      return <section className="asset-upload-group" key={group.id} aria-labelledby={`asset-group-${group.id}`}>
+        <h3 id={`asset-group-${group.id}`}>{group.label}</h3>
+        {generalFiles.length > 0 && renderAssetRows(generalFiles)}
+        {subgroups.map((subgroup) => <section className="asset-upload-subgroup" key={subgroup} aria-label={subgroup}>
+          <h4>{subgroup}</h4>
+          {renderAssetRows(groupFiles.filter((asset) => asset.subgroup === subgroup))}
+        </section>)}
+      </section>
+    })}</div>
+    {notice && <div className={`asset-upload-toast ${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}><span className="asset-upload-toast-icon" aria-hidden="true">{notice.type === 'success' ? '✓' : '!'}</span><div><strong>{notice.title}</strong><p>{notice.detail}</p></div><button type="button" aria-label="Cerrar aviso" onClick={() => { window.clearTimeout(noticeTimer.current); setNotice(null) }}>×</button></div>}
   </section>
 }
 function App() {
   const [path, setPath] = useState(window.location.pathname)
-  const [filter, setFilter] = useState('Todo')
   const defaultProductionDate = '2026-10-31'
   const [productionDate, setProductionDate] = useState(() => {
     try { return window.localStorage.getItem('production-date') || defaultProductionDate } catch { return defaultProductionDate }
@@ -310,6 +412,13 @@ function App() {
       if (saved) return saved
     } catch {}
     return '01:32'
+  })
+  const [julianPhone, setJulianPhone] = useState(() => {
+    try { return window.localStorage.getItem('julian-phone') ?? '+54 9 11 1103-1976' } catch { return '+54 9 11 1103-1976' }
+  })
+  const defaultInstagramBio = 'Música, cine y alguna foto de madrugada.'
+  const [instagramBio, setInstagramBio] = useState(() => {
+    try { return window.localStorage.getItem('instagram-bio') ?? defaultInstagramBio } catch { return defaultInstagramBio }
   })
 
   function updateClockTime(value) {
@@ -322,13 +431,35 @@ function App() {
     try { window.localStorage.setItem('production-date', value) } catch {}
   }
 
+  function updateJulianPhone(value) {
+    setJulianPhone(value)
+    try { window.localStorage.setItem('julian-phone', value) } catch {}
+  }
+
+  function updateInstagramBio(value) {
+    setInstagramBio(value)
+    try { window.localStorage.setItem('instagram-bio', value) } catch {}
+  }
+
   useEffect(() => {
-    const onPopState = () => setPath(window.location.pathname)
+    const onPopState = () => {
+      const nextPath = window.location.pathname
+      setPath(nextPath)
+      if (!nextPath.startsWith('/mobile/') && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {})
+    }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
   function navigate(nextPath) {
+    const isMobileView = nextPath.startsWith('/mobile/')
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true
+    if (isMobileView && config.autoFullscreen && window.matchMedia('(pointer: coarse)').matches && !isIOSDevice && !isStandalone && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {})
+    } else if (!isMobileView && document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {})
+    }
     window.history.pushState({}, '', nextPath)
     setPath(nextPath)
     window.scrollTo(0, 0)
@@ -336,25 +467,24 @@ function App() {
 
   if (path === '/mobile/esc3-p2') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
   const selected = scenes.find((scene) => scene.path === path)
-  if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone="+54 9 11 1103-1976" contactAvatar={assets.julianAvatar} />
+  if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} />
   if (selected) {
     if (selected.path === '/notebook/esc1a-p2') return <DesktopView onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} />
     if (selected.path === '/notebook/esc1g-p2') return <MailDesktopScene onHome={() => navigate('/')} clockTime={clockTime} />
-    if (selected.path === '/notebook/esc3-p2') return <DesktopView onHome={() => navigate('/')} showMusic={false} autoOpenAssistant clockTime={clockTime} />
-    if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} avatarUrl={assets.julianAvatar} clockTime={clockTime} />
+    if (selected.path === '/notebook/esc3-p2') return <MailToAssistantScene onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} />
+    if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} avatarUrl={assets.julianInstagramAvatar} clockTime={clockTime} bio={instagramBio} />
     if (selected.path === '/mobile/esc1c-p1') return <LockScreen onHome={() => navigate('/')} wallpaperUrl={assets.mobileWallpaper} clockTime={clockTime} productionDate={productionDate} />
     if (selected.path === '/mobile/esc1c-p5') return <LockScreen onHome={() => navigate('/')} clockTime={clockTime} productionDate={productionDate} notificationDelayMs={5000} notificationStaggerMs={900} notifications={[
-      { id: 'unknown-1', title: '+54 9 11 1103-1976', message: 'Hola, estas?', time: 'ahora', kind: 'whatsapp' },
-      { id: 'unknown-2', title: '+54 9 11 1103-1976', message: 'estas bien?', time: 'ahora', kind: 'whatsapp' },
+      { id: 'unknown-1', title: julianPhone, message: 'Hola, estas?', time: 'ahora', kind: 'whatsapp' },
+      { id: 'unknown-2', title: julianPhone, message: 'estas bien?', time: 'ahora', kind: 'whatsapp' },
     ]} wallpaperUrl={assets.mobileWallpaper} />
     if (selected.path === '/mobile/esc1a-p1') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
-    if (selected.path === '/mobile/esc1g-p11') return <WhatsAppChat onHome={() => navigate('/')} contactPhone="+54 9 11 1103-1976" contactAvatar={assets.julianAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer />
-    if (selected.path === '/mobile/esc1g-p12') return <WhatsAppChat onHome={() => navigate('/')} contactPhone="+54 9 11 1103-1976" contactAvatar={assets.julianAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer dynamicReplay />
-    if (selected.path === '/mobile/esc1g-p10') return <IncomingCall onHome={() => navigate('/')} callerName="JULIÁN" callerSubtext="llamada de voz entrante" avatarUrl={assets.julianAvatar} clockTime={clockTime} />
+    if (selected.path === '/mobile/esc1g-p11') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer />
+    if (selected.path === '/mobile/esc1g-p12') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer dynamicReplay />
+    if (selected.path === '/mobile/esc1g-p10') return <IncomingCall onHome={() => navigate('/')} callerName="JULIÁN" callerSubtext="llamada de voz entrante" avatarUrl={assets.julianWhatsappAvatar} clockTime={clockTime} />
     return <ScenePlaceholder scene={selected} onHome={() => navigate('/')} />
   }
 
-  const visibleScenes = filter === 'Todo' ? scenes : scenes.filter((scene) => scene.device === filter)
   return (
     <main className="shell">
       <header className="topbar">
@@ -367,24 +497,32 @@ function App() {
       <section className="scene-section">
         <div className="section-heading">
           <div><p className="eyebrow">ACCESO RÁPIDO</p><h2>Escenas y planos</h2></div>
-          <div className="filters" aria-label="Filtrar por dispositivo">
-            {['Todo', 'Notebook', 'Celular'].map((item) => <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>)}
-          </div>
         </div>
-        <div className="scene-grid">
-          {visibleScenes.map((scene, index) => (
-            <button className="scene-card" key={scene.path} onClick={() => navigate(scene.path)}>
-              <span className="card-top"><span className={`device-icon ${scene.device === 'Celular' ? 'phone' : ''}`}>{scene.device === 'Celular' ? '▯' : '▱'}</span><span className="card-index">{String(index + 1).padStart(2, '0')}</span></span>
-              <span className="scene-code">{scene.code}<span>, </span>{scene.shot}</span>
-              <span className="scene-title">{scene.title}</span>
-              <span className="card-bottom"><span>{scene.device.toUpperCase()}</span><span className="arrow">↗</span></span>
-            </button>
-          ))}
-        </div>
+        <div className="scene-groups">{['Notebook', 'Celular'].map((device) => {
+          const deviceScenes = scenes.filter((scene) => scene.device === device)
+          return <section className="scene-group" key={device} aria-labelledby={`scene-group-${device.toLowerCase()}`}>
+            <div className="scene-group-heading"><h3 id={`scene-group-${device.toLowerCase()}`}>{device}</h3><span>{deviceScenes.length} {deviceScenes.length === 1 ? 'vista' : 'vistas'}</span></div>
+            <div className="scene-grid">{deviceScenes.map((scene, index) => (
+              <button className="scene-card" key={scene.path} onClick={() => navigate(scene.path)}>
+                <span className="card-top"><span className={`device-icon ${scene.device === 'Celular' ? 'phone' : ''}`}>{scene.device === 'Celular' ? '▯' : '▱'}</span><span className="card-index">{String(index + 1).padStart(2, '0')}</span></span>
+                <span className="scene-code">{scene.code}<span>, </span>{scene.shot}</span>
+                <span className="scene-title">{scene.title}</span>
+                <span className="card-bottom"><span>ABRIR</span><span className="arrow">↗</span></span>
+              </button>
+            ))}</div>
+          </section>
+        })}</div>
       </section>
       <section className="clock-tool" aria-label="Personalizar horario">
         <div><p className="eyebrow">CONFIGURACIÓN</p><h2>Fecha y hora de las pantallas</h2><p>Se aplican a los relojes y la fecha del celular. Las marcas dentro de los mensajes no cambian.</p></div>
         <div className="clock-tool-fields"><label>Fecha<input type="date" value={productionDate} onChange={(event) => updateProductionDate(event.target.value)} /></label><label>Hora<input type="time" value={clockTime} onChange={(event) => updateClockTime(event.target.value)} /></label></div>
+      </section>
+      <section className="project-text-tool" aria-label="Datos de Julián">
+        <div><p className="eyebrow">PERFILES</p><h2>Datos de Julián</h2></div>
+        <div className="project-text-tool-fields">
+          <label>Número de WhatsApp<input type="text" value={julianPhone} onChange={(event) => updateJulianPhone(event.target.value)} /></label>
+          <label>Bio de Instagram<input type="text" value={instagramBio} onChange={(event) => updateInstagramBio(event.target.value)} /></label>
+        </div>
       </section>
       <AssetUploadSection />
       <footer><span>INVISIBLE <i>·</i> UTILERÍA DIGITAL</span><span>HERRAMIENTAS DE RODAJE <b>01 / 01</b></span></footer>
@@ -392,7 +530,8 @@ function App() {
   )
 }
 
-function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssistant = false, onOpenMail = null, mailBadgeDelayMs = 1500, clockTime = '09:41' }) {
+function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssistant = false, autoOpenAssistantDelayMs = 5000, onOpenMail = null, showMailBadge = true, mailBadgeDelayMs = 1500, clockTime = '09:41' }) {
+  const [wallpaperFailed, setWallpaperFailed] = useState(false)
   const [playing, setPlaying] = useState(true)
   const [selectedDesktopIcon, setSelectedDesktopIcon] = useState('')
   const [isMusicMinimized, setIsMusicMinimized] = useState(false)
@@ -402,12 +541,6 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
   const [assistantWindowZoomed, setAssistantWindowZoomed] = useState(false)
   const [assistantWindowPosition, setAssistantWindowPosition] = useState(null)
   const [mailBadgeVisible, setMailBadgeVisible] = useState(false)
-  const [autoCursorVisible, setAutoCursorVisible] = useState(false)
-  const [autoCursorPosition, setAutoCursorPosition] = useState({ x: 0, y: 0 })
-  const [autoCursorClicking, setAutoCursorClicking] = useState(false)
-  const desktopRef = useRef(null)
-  const assistantDockRef = useRef(null)
-  const autoCursorRef = useRef(null)
   const [widgetPosition, setWidgetPosition] = useState(null)
   const [isDraggingWidget, setIsDraggingWidget] = useState(false)
   const widgetDragRef = useRef(null)
@@ -420,60 +553,19 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
   }, [onHome, assistantWindowOpen])
 
   useEffect(() => {
-    if (!onOpenMail) return undefined
+    if (!onOpenMail || !showMailBadge) {
+      setMailBadgeVisible(false)
+      return undefined
+    }
     const timer = window.setTimeout(() => setMailBadgeVisible(true), mailBadgeDelayMs)
     return () => window.clearTimeout(timer)
-  }, [onOpenMail, mailBadgeDelayMs])
+  }, [onOpenMail, showMailBadge, mailBadgeDelayMs])
 
   useEffect(() => {
     if (!autoOpenAssistant) return undefined
-    let frameId
-    let startTimer
-    let clickTimer
-    const desktop = desktopRef.current
-    const dockIcon = assistantDockRef.current
-    if (!desktop || !dockIcon) return undefined
-
-    const desktopRect = desktop.getBoundingClientRect()
-    const targetRect = dockIcon.getBoundingClientRect()
-    const start = { x: desktopRect.width * 0.2, y: desktopRect.height * 0.48 }
-    const target = { x: targetRect.left - desktopRect.left + targetRect.width / 2, y: targetRect.top - desktopRect.top + targetRect.height / 2 }
-    setAutoCursorPosition(start)
-    setAutoCursorVisible(true)
-
-    startTimer = window.setTimeout(() => {
-      const cursor = autoCursorRef.current
-      if (!cursor) return
-      const startedAt = performance.now()
-      const duration = 1350
-      const control = { x: desktopRect.width * 0.62, y: desktopRect.height * 0.32 }
-      const move = (now) => {
-        const rawProgress = Math.min((now - startedAt) / duration, 1)
-        const progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
-        const inverse = 1 - progress
-        const x = inverse * inverse * start.x + 2 * inverse * progress * control.x + progress * progress * target.x
-        const y = inverse * inverse * start.y + 2 * inverse * progress * control.y + progress * progress * target.y
-        cursor.style.left = `${x}px`
-        cursor.style.top = `${y}px`
-        if (rawProgress < 1) frameId = window.requestAnimationFrame(move)
-        else {
-          setAutoCursorPosition(target)
-          setAutoCursorClicking(true)
-          clickTimer = window.setTimeout(() => {
-            setAssistantWindowOpen(true)
-            setAutoCursorVisible(false)
-          }, 260)
-        }
-      }
-      frameId = window.requestAnimationFrame(move)
-    }, 5000)
-
-    return () => {
-      window.clearTimeout(startTimer)
-      window.clearTimeout(clickTimer)
-      window.cancelAnimationFrame(frameId)
-    }
-  }, [autoOpenAssistant])
+    const timer = window.setTimeout(() => setAssistantWindowOpen(true), autoOpenAssistantDelayMs)
+    return () => window.clearTimeout(timer)
+  }, [autoOpenAssistant, autoOpenAssistantDelayMs])
 
   function startWidgetDrag(event) {
     if (isMusicZoomed) return
@@ -541,8 +633,8 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
     setAssistantWindowOpen(true)
   }
 
-  return <main className="desktop-screen" ref={desktopRef}>
-    <div className="desktop-wallpaper">{wallpaperUrl && <img className="desktop-wallpaper-photo" src={wallpaperUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</div>
+  return <main className="desktop-screen">
+    <div className={`desktop-wallpaper${wallpaperUrl && !wallpaperFailed ? ' has-wallpaper-photo' : ''}`}>{wallpaperUrl && !wallpaperFailed && <FlexibleAssetImage className="desktop-wallpaper-photo" src={wallpaperUrl} alt="" onError={() => setWallpaperFailed(true)} />}</div>
     <div className="desktop-menu"><span className="apple-mark"><Apple size={15} fill="currentColor" strokeWidth={1.5} /></span><strong>Finder</strong><span>Archivo</span><span>Edición</span><span>Visualización</span><span>Ir</span><span>Ventana</span><span>Ayuda</span><div className="menu-spacer" /><div className="menu-status-icons"><span title="Buscar" aria-label="Buscar"><Search /></span><span title="Protección activa" aria-label="Protección activa"><ShieldCheck /></span><span title="Batería" aria-label="Batería"><BatteryFull /></span><span title="Wi-Fi" aria-label="Wi-Fi"><Wifi /></span></div><span>{clockTime}</span></div>
     <div className="desktop-icons"><button className={`desktop-icon${selectedDesktopIcon === 'Proyectos' ? ' selected' : ''}`} onClick={() => setSelectedDesktopIcon('Proyectos')} aria-label="Proyectos"><span><FolderOpen size={35} strokeWidth={1.4} /></span><small>Proyectos</small></button><button className={`desktop-icon${selectedDesktopIcon === 'Notas' ? ' selected' : ''}`} onClick={() => setSelectedDesktopIcon('Notas')} aria-label="Notas"><span><StickyNote size={34} strokeWidth={1.4} /></span><small>Notas</small></button><button className={`desktop-icon${selectedDesktopIcon === 'Música' ? ' selected' : ''}`} onClick={() => setSelectedDesktopIcon('Música')} onDoubleClick={openMusic} onKeyDown={(event) => { if (event.key === 'Enter') openMusic() }} aria-label="Música"><span><Music2 size={34} strokeWidth={1.5} /></span><small>Música</small></button></div>
     {showMusic && !isMusicClosed && !isMusicMinimized && <section className={`music-widget${isDraggingWidget ? ' is-dragging' : ''}${isMusicZoomed ? ' is-zoomed' : ''}`} aria-label="Reproductor de música" style={widgetPosition && !isMusicZoomed ? { left: `${widgetPosition.x}px`, top: `${widgetPosition.y}px`, right: 'auto' } : undefined} onPointerDown={startWidgetDrag} onPointerMove={moveWidget} onPointerUp={endWidgetDrag} onPointerCancel={endWidgetDrag}>
@@ -554,18 +646,35 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
       </div>
       <span className="widget-menu">•••</span>
     </section>}
-    <div className="dock" aria-label="Dock"><span className="dock-icon dock-finder" title="Finder"><FolderOpen aria-label="Finder" /></span>{onOpenMail ? <button type="button" className="dock-icon dock-mail" title="Correo" aria-label="Abrir Correo" onClick={() => onOpenMail(true)}><Mail aria-hidden="true" />{mailBadgeVisible && <span className="dock-notification-badge">1</span>}</button> : <span className="dock-icon dock-mail" title="Correo"><Mail aria-label="Correo" /></span>}<button type="button" className="dock-icon dock-assistant" ref={assistantDockRef} title="Asistente IA" aria-label="Abrir Asistente IA" onClick={openAssistant}>◈</button><span className="dock-icon dock-photos" title="Fotos"><Images aria-label="Fotos" /></span><span className="dock-icon dock-settings" title="Configuración"><Settings aria-label="Configuración" /></span></div>
-    {autoCursorVisible && <div ref={autoCursorRef} className={`auto-mouse-pointer${autoCursorClicking ? ' clicking' : ''}`} style={{ left: `${autoCursorPosition.x}px`, top: `${autoCursorPosition.y}px` }} aria-hidden="true"><svg viewBox="0 0 24 32"><path d="M3 2.5v23l5.8-5.8 4.1 9.1 4.2-1.9-4.2-9.1h8.2L3 2.5z" /></svg></div>}
-    {assistantWindowOpen && <TypewriterTerminal onHome={() => setAssistantWindowOpen(false)} onWindowMinimize={() => setAssistantWindowOpen(false)} onWindowClose={() => { setAssistantWindowOpen(false); setAssistantWindowPosition(null); setAssistantWindowZoomed(false) }} onWindowZoom={() => setAssistantWindowZoomed((value) => !value)} isWindow isWindowZoomed={assistantWindowZoomed} windowPosition={assistantWindowPosition} onWindowPointerDown={startAssistantDrag} onWindowPointerMove={moveAssistantWindow} onWindowPointerUp={endAssistantDrag} />}
-    <button className="desktop-back" onClick={onHome}>← Panel</button>
+    <div className="dock" aria-label="Dock"><span className="dock-icon dock-finder" title="Finder"><FolderOpen aria-label="Finder" /></span>{onOpenMail ? <button type="button" className="dock-icon dock-mail" title="Correo" aria-label="Abrir Correo" onClick={() => onOpenMail(true)}><Mail aria-hidden="true" />{mailBadgeVisible && <span className="dock-notification-badge">1</span>}</button> : <span className="dock-icon dock-mail" title="Correo"><Mail aria-label="Correo" /></span>}<button type="button" className="dock-icon dock-assistant" title="Asistente IA" aria-label="Abrir Asistente IA" onClick={openAssistant}>◈</button><span className="dock-icon dock-photos" title="Fotos"><Images aria-label="Fotos" /></span><span className="dock-icon dock-settings" title="Configuración"><Settings aria-label="Configuración" /></span></div>
+    {assistantWindowOpen && <TypewriterTerminal onHome={() => setAssistantWindowOpen(false)} onWindowMinimize={() => setAssistantWindowOpen(false)} onWindowClose={() => { setAssistantWindowOpen(false); setAssistantWindowPosition(null); setAssistantWindowZoomed(false) }} onWindowZoom={() => setAssistantWindowZoomed((value) => !value)} isWindow isWindowOpening isWindowZoomed={assistantWindowZoomed} windowPosition={assistantWindowPosition} onWindowPointerDown={startAssistantDrag} onWindowPointerMove={moveAssistantWindow} onWindowPointerUp={endAssistantDrag} />}
   </main>
 }
 
-function WebmailView({ onHome, senderName = 'JULIÁN', senderEmail = 'julian.v@mail.com', subject = 'Video', attachmentVideoUrl = '/assets/video_01.mp4', isAttachmentLoading: startsLoading = false, clockTime = '09:41' }) {
+function WebmailView({ onHome, onClose = onHome, onMinimize = onHome, onZoom = () => {}, isZoomed = false, autoMinimizeAfterMs = null, initiallyRead = false, senderName = 'JULIÁN', senderEmail = 'julian.v@mail.com', subject = 'Video', attachmentVideoUrl = '/assets/video_01.mp4', isAttachmentLoading: startsLoading = false, clockTime = '09:41' }) {
   const [attachmentOpen, setAttachmentOpen] = useState(false)
   const [isAttachmentLoading, setIsAttachmentLoading] = useState(startsLoading)
   const [videoUnavailable, setVideoUnavailable] = useState(false)
-  const [isJulianRead, setIsJulianRead] = useState(false)
+  const [isJulianRead, setIsJulianRead] = useState(initiallyRead)
+  const [windowExit, setWindowExit] = useState('')
+  const windowExitTimer = useRef(null)
+
+  function exitWindow(kind) {
+    if (windowExit) return
+    setWindowExit(kind)
+    windowExitTimer.current = window.setTimeout(() => {
+      if (kind === 'close') onClose()
+      else onMinimize()
+    }, 420)
+  }
+
+  useEffect(() => () => window.clearTimeout(windowExitTimer.current), [])
+
+  useEffect(() => {
+    if (autoMinimizeAfterMs == null) return undefined
+    const timer = window.setTimeout(() => exitWindow('minimize'), autoMinimizeAfterMs)
+    return () => window.clearTimeout(timer)
+  }, [autoMinimizeAfterMs])
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -586,8 +695,8 @@ function WebmailView({ onHome, senderName = 'JULIÁN', senderEmail = 'julian.v@m
     window.setTimeout(() => setIsAttachmentLoading(false), 1600)
   }
 
-  return <main className="mail-screen">
-    <div className="mail-menu"><span className="mail-logo">m</span><strong>Correo</strong><span>Archivo</span><span>Editar</span><span>Ver</span><span>Ventana</span><div className="menu-spacer" /><span>◔</span><span>{clockTime}</span></div>
+  return <main className={`mail-screen${isZoomed ? ' is-zoomed' : ''}${windowExit ? ` is-${windowExit === 'close' ? 'closing' : 'minimizing'}` : ''}`}>
+    <div className="mail-menu"><div className="mail-window-controls"><button type="button" className="mac-window-control close" onClick={() => exitWindow('close')} aria-label="Cerrar Correo" title="Cerrar"><X /></button><button type="button" className="mac-window-control minimize" onClick={() => exitWindow('minimize')} aria-label="Minimizar Correo" title="Minimizar"><Minus /></button><button type="button" className="mac-window-control zoom" onClick={onZoom} aria-label={isZoomed ? 'Restaurar ventana de Correo' : 'Agrandar ventana de Correo'} title={isZoomed ? 'Restaurar' : 'Agrandar'}>{isZoomed ? <Minimize2 /> : <Maximize2 />}</button></div><span className="mail-logo">m</span><strong>Correo</strong><span>Archivo</span><span>Editar</span><span>Ver</span><span>Ventana</span><div className="menu-spacer" /><span>◔</span><span>{clockTime}</span></div>
     <div className="mail-toolbar"><span className="mail-wordmark">buzón<span>.</span></span><label className="mail-search">⌕ <span>Buscar en el correo</span></label><span className="mail-user">M</span></div>
     <div className="mail-layout">
       <aside className="mail-sidebar"><button className="compose-button">＋ <span>Redactar</span></button><div className="mail-folder selected">▣ <span>Recibidos</span>{!isJulianRead && <b>1</b>}</div><div className="mail-folder">☆ <span>Destacados</span></div><div className="mail-folder">◷ <span>Pospuestos</span></div><div className="mail-folder">▤ <span>Enviados</span></div><div className="mail-folder">▱ <span>Borradores</span></div><div className="mail-label-title">ETIQUETAS</div><div className="mail-folder">▰ <span>Personal</span></div></aside>
@@ -595,23 +704,58 @@ function WebmailView({ onHome, senderName = 'JULIÁN', senderEmail = 'julian.v@m
         {!isJulianRead && <span className="unread-dot" />}<span className="sender-avatar">J</span><div className="mail-row-content"><div className="mail-row-top"><strong>{senderName}</strong><time>09:38</time></div><strong>{subject}</strong><span>Te quería mostrar esto.</span><small>▣ Video adjunto</small></div></div>{promoEmails.map((email, index) => <div className="mail-row read" key={`${email.sender}-${email.subject}-${index}`} role="button" tabIndex={0} onClick={() => {}} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') event.preventDefault() }} aria-label={`${email.subject}, leído`}><span className="sender-avatar" style={{ background: email.color }}>{email.avatar}</span><div className="mail-row-content"><div className="mail-row-top"><strong>{email.sender}</strong><time>{email.time}</time></div><strong>{email.subject}</strong><span>{email.preview}</span></div></div>)}</section>
       <article className="mail-reading"><div className="reading-actions"><button aria-label="Volver a recibidos">←</button><span>▱　☆　⌫　⋮</span></div><div className="mail-subject">{subject} <span>Recibidos ×</span></div><div className="sender-details"><span className="sender-avatar large">J</span><div><strong>{senderName} <span>&lt;{senderEmail}&gt;</span></strong><small>para Martina <span>⌄</span></small></div><time>09:38 <span>☆　⋮</span></time></div><div className="mail-body">Te quería mostrar esto.</div><button className="attachment-card" onClick={openAttachment}><span className="video-thumb"><i>▶</i><small>VIDEO</small></span><span className="attachment-meta"><strong>video_01.mp4</strong><small>Video adjunto · 24 MB</small></span><span className="attachment-action">↗</span></button><div className="mail-reply"><button>↶　Responder</button><button>⋯　Más</button></div></article>
     </div>
-    <button className="mail-back" onClick={onHome}>← Panel</button>
-    {attachmentOpen && <div className="video-overlay" role="dialog" aria-modal="true" aria-label="Video adjunto"><div className="video-window"><div className="video-window-bar"><span>video_01.mp4</span><button onClick={() => setAttachmentOpen(false)} aria-label="Cerrar">×</button></div><div className="video-stage">{isAttachmentLoading ? <><span className="loading-spinner" /><p>Cargando video adjunto…</p></> : attachmentVideoUrl && !videoUnavailable ? <video className="attached-video" src={attachmentVideoUrl} controls autoPlay onError={() => setVideoUnavailable(true)} /> : <><div className="video-placeholder-mark">▶</div><p>Vista previa del video</p><small>El archivo de video todavía no está disponible.</small></>}</div><div className="video-controls"><button aria-label="Reproducir video">▶</button><span>0:00 / —:—</span><div className="video-track" /><span>◖　⛶</span></div></div></div>}
+    {attachmentOpen && <div className="video-overlay" role="dialog" aria-modal="true" aria-label="Video adjunto"><div className="video-window"><div className="video-window-bar"><span>video_01.mp4</span><button onClick={() => setAttachmentOpen(false)} aria-label="Cerrar">×</button></div><div className="video-stage">{isAttachmentLoading ? <><span className="loading-spinner" /><p>Cargando video adjunto…</p></> : attachmentVideoUrl && !videoUnavailable ? <video className="attached-video" src={attachmentVideoUrl} controls autoPlay onError={() => setVideoUnavailable(true)} /> : <><div className="video-placeholder-mark">▶</div><p>Vista previa del video</p><small>El archivo de video todavía no está disponible.</small></>}</div></div></div>}
   </main>
 }
 
 function MailDesktopScene({ onHome, clockTime = '09:41' }) {
   const [isMailOpen, setIsMailOpen] = useState(false)
-  if (isMailOpen) return <WebmailView onHome={onHome} clockTime={clockTime} />
-  return <DesktopView onHome={onHome} wallpaperUrl={assets.desktopWallpaper} showMusic={false} onOpenMail={setIsMailOpen} mailBadgeDelayMs={1800} clockTime={clockTime} />
+  const [mailNotificationDismissed, setMailNotificationDismissed] = useState(false)
+  const [isMailZoomed, setIsMailZoomed] = useState(false)
+  function openMail() {
+    setMailNotificationDismissed(true)
+    setIsMailOpen(true)
+  }
+  if (isMailOpen) return <WebmailView onHome={onHome} onClose={() => { setIsMailOpen(false); setIsMailZoomed(false) }} onMinimize={() => setIsMailOpen(false)} onZoom={() => setIsMailZoomed((value) => !value)} isZoomed={isMailZoomed} clockTime={clockTime} />
+  return <DesktopView onHome={onHome} wallpaperUrl={assets.desktopWallpaper} showMusic={false} onOpenMail={openMail} showMailBadge={!mailNotificationDismissed} mailBadgeDelayMs={1800} clockTime={clockTime} />
 }
 
-function TypewriterTerminal({ onHome, lines = terminalLines, typingSpeed = 20, isIncognito = true, isWindow = false, isWindowZoomed = false, windowPosition = null, onWindowMinimize, onWindowClose, onWindowZoom, onWindowPointerDown, onWindowPointerMove, onWindowPointerUp }) {
+function MailToAssistantScene({ onHome, wallpaperUrl, clockTime = '09:41' }) {
+  const [mailVisible, setMailVisible] = useState(true)
+  const [assistantReady, setAssistantReady] = useState(false)
+  const assistantOpenTimer = useRef(null)
+
+  useEffect(() => () => window.clearTimeout(assistantOpenTimer.current), [])
+
+  function minimizeMail() {
+    setMailVisible(false)
+    assistantOpenTimer.current = window.setTimeout(() => setAssistantReady(true), 1000)
+  }
+
+  return <div className="mail-assistant-sequence">
+    <div className="mail-assistant-desktop"><DesktopView onHome={onHome} wallpaperUrl={wallpaperUrl} showMusic={false} autoOpenAssistant={assistantReady} autoOpenAssistantDelayMs={0} clockTime={clockTime} /></div>
+    {mailVisible && <div className="mail-assistant-cover"><WebmailView onHome={onHome} onClose={onHome} onMinimize={minimizeMail} autoMinimizeAfterMs={5000} initiallyRead clockTime={clockTime} /></div>}
+  </div>
+}
+
+function TypewriterTerminal({ onHome, lines = terminalLines, typingSpeed = 20, isIncognito = true, isWindow = false, isWindowOpening = false, isWindowZoomed = false, windowPosition = null, onWindowMinimize, onWindowClose, onWindowZoom, onWindowPointerDown, onWindowPointerMove, onWindowPointerUp }) {
   const [currentText, setCurrentText] = useState('')
   const [sequenceIndex, setSequenceIndex] = useState(0)
   const [isThinking, setIsThinking] = useState(true)
   const [isErasing, setIsErasing] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
+  const [glitchPhase, setGlitchPhase] = useState(0)
+
+  useEffect(() => {
+    if (!isWindow) return undefined
+    const timers = [
+      window.setTimeout(() => setGlitchPhase(1), 180),
+      window.setTimeout(() => setGlitchPhase(0), 340),
+      window.setTimeout(() => setGlitchPhase(2), 470),
+      window.setTimeout(() => setGlitchPhase(0), 700),
+    ]
+    return () => timers.forEach(window.clearTimeout)
+  }, [isWindow])
 
   useEffect(() => {
     let lineIndex = 0
@@ -634,7 +778,7 @@ function TypewriterTerminal({ onHome, lines = terminalLines, typingSpeed = 20, i
           setIsComplete(true)
         } else {
           setIsThinking(false)
-          const pauseBeforeNextLine = lineIndex >= lines.length - 2 ? 1800 : 850
+          const pauseBeforeNextLine = lineIndex >= lines.length - 2 ? 1200 : 850
           timer = window.setTimeout(eraseLine, pauseBeforeNextLine)
         }
       }
@@ -665,12 +809,12 @@ function TypewriterTerminal({ onHome, lines = terminalLines, typingSpeed = 20, i
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onHome])
 
-  return <main className={`terminal-screen${isWindow ? ' terminal-window-mode' : ''}${isWindowZoomed ? ' is-window-zoomed' : ''}`} style={isWindow && windowPosition && !isWindowZoomed ? { left: `${windowPosition.x}px`, top: `${windowPosition.y}px`, transform: 'none' } : undefined}>
+  return <main className={`terminal-screen${isWindow ? ' terminal-window-mode' : ''}${isWindowOpening ? ' is-window-opening' : ''}${isWindowZoomed ? ' is-window-zoomed' : ''}`} style={isWindow && windowPosition && !isWindowZoomed ? { left: `${windowPosition.x}px`, top: `${windowPosition.y}px`, transform: 'none' } : undefined}>
     <div className={isWindow ? 'assistant-app-titlebar' : 'browser-chrome'} onPointerDown={isWindow ? onWindowPointerDown : undefined} onPointerMove={isWindow ? onWindowPointerMove : undefined} onPointerUp={isWindow ? onWindowPointerUp : undefined} onPointerCancel={isWindow ? onWindowPointerUp : undefined}><div className="browser-window-controls">{isWindow ? <><button type="button" className="mac-window-control close" aria-label="Cerrar asistente" title="Cerrar" onClick={onWindowClose}><X /></button><button type="button" className="mac-window-control minimize" aria-label="Minimizar asistente" title="Minimizar" onClick={onWindowMinimize}><Minus /></button><button type="button" className="mac-window-control zoom" aria-label={isWindowZoomed ? 'Restaurar asistente' : 'Ampliar asistente'} title={isWindowZoomed ? 'Restaurar' : 'Ampliar'} onClick={onWindowZoom}>{isWindowZoomed ? <Minimize2 /> : <Maximize2 />}</button></> : <><i /><i /><i /></>}</div>{isWindow ? <strong className="assistant-app-title">asistente<span>.</span></strong> : <><div className="browser-tab"><span className="incognito-symbol">◉</span> Nueva pestaña — Incógnito <b>×</b></div><div className="browser-new-tab">＋</div><div className="browser-address"><span>◉</span><span>{isIncognito ? 'Incógnito' : 'Protocolo privado'}</span><span className="address-divider">|</span><span className="address-muted">La actividad de esta ventana no aparecerá...</span><span className="address-menu">⋮</span></div></>}</div>
+    {glitchPhase > 0 && <div className={`assistant-glitch-overlay assistant-glitch-phase-${glitchPhase}`} aria-hidden="true"><span>{glitchPhase === 1 ? '0x7F 0xA9 0xF3 0x1C 0x00' : glitchPhase === 2 ? '0xA4 0x7D 0x09 0xC3 0xFF 0x21 0x8E' : '0x3A 0x0F 0xB2 0xE1 0x64'}</span></div>}
     <section className="terminal-content"><div className="terminal-brand"><span className="terminal-emblem">◈</span><div><strong>asistente<span>.</span></strong><small>PROCESO AUTÓNOMO <i>●</i></small></div></div><div className="terminal-rule" />
       <div className="terminal-output assistant-sequence" aria-live="polite"><div className={`assistant-thinking-visual is-thinking${isComplete ? ' is-complete' : ''}`}><span className="assistant-orbit orbit-one"/><span className="assistant-orbit orbit-two"/><span className="assistant-thinking-core">◈</span></div><div className={`assistant-sequence-text${isErasing ? ' is-erasing' : ''}`} aria-live="polite">{currentText}{isThinking && !isErasing && <i className="type-cursor" />}</div><small className="assistant-sequence-counter">{String(Math.min(sequenceIndex + 1, lines.length)).padStart(2, '0')} / {String(lines.length).padStart(2, '0')}</small></div>
       <div className="terminal-footer"><span><i /> CONEXIÓN SEGURA</span><span>IA v.03.17 <b>·</b> LOCAL</span></div></section>
-    <button className="terminal-back" onClick={onHome}>← Volver al panel</button>
   </main>
 }
 
@@ -763,8 +907,8 @@ function MobileAIChat({ onHome, clockTime = '09:41' }) {
 
   return <main className="mobile-ai-screen">
     <section className="mobile-ai-phone">
-      <div className="mobile-ai-status"><span>{clockTime}</span><span>●●●　◖　▰</span></div>
-      <header className="mobile-ai-header"><button className="mobile-ai-back" onClick={onHome} aria-label="Volver al panel">‹</button><AssistantOrb compact /><div><strong>asistente<span>.</span></strong><small><i /> Disponible</small></div><button className="mobile-ai-menu" aria-label="Opciones">•••</button></header>
+      <div className="mobile-ai-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
+      <header className="mobile-ai-header"><button className="mobile-ai-back" onClick={onHome} aria-label="Volver">‹</button><AssistantOrb compact /><div><strong>asistente<span>.</span></strong><small><i /> Disponible</small></div><button className="mobile-ai-menu" aria-label="Opciones">•••</button></header>
       <div className="mobile-ai-messages" aria-live="polite">
         {messages.length === 0 && <div className="mobile-ai-welcome"><AssistantOrb /><strong>asistente<span>.</span></strong><p>Mandá un audio para empezar</p></div>}
         {messages.map((message) => <article className={`mobile-ai-message ${message.sender === 'martina' ? 'from-martina' : 'from-assistant'}`} key={message.id}>
@@ -798,17 +942,17 @@ function WhatsAppMessageBubble({ message, broken = false, onImageError, showTime
   return <article className={`chat-bubble${previewable ? ' is-previewable' : ''}`} onClick={onClick}>
     {message.audioDuration && !messageText && <div className="chat-audio-note" aria-label={message.sender === 'me' ? 'Nota de voz enviada' : `Nota de voz, ${message.audioDuration}`}><span className="chat-audio-play">▶</span><span className="chat-audio-waveform">{Array.from({ length: 22 }, (_, index) => <i key={index} style={{ height: `${7 + ((index * 7) % 14)}px` }} />)}</span>{message.sender !== 'me' && <small>{message.audioDuration}</small>}</div>}
     {message.photoLabel && <div className="chat-image-fallback"><span>▧</span><small>{message.photoLabel}</small></div>}
-    {message.image && (broken ? <div className="chat-image-fallback"><span>▧</span><small>{message.imageAlt || 'Imagen compartida'}</small></div> : <img className="chat-image" src={message.image} alt={message.imageAlt || 'Imagen compartida'} onError={onImageError} />)}
+    {message.image && (broken ? <div className="chat-image-fallback"><span>▧</span><small>{message.imageAlt || 'Imagen compartida'}</small></div> : <FlexibleAssetImage className="chat-image" src={message.image} alt={message.imageAlt || 'Imagen compartida'} onError={onImageError} />)}
     {messageText && <span className="chat-message-text">{formatWhatsAppChatText(messageText, message.sender)}</span>}
     <footer>{showTimestamp && <time>{message.timestamp || '09:43'}</time>}{message.sender === 'me' && <span className={`message-status ${message.status === 'read' ? 'read' : ''}`}>✓✓</span>}</footer>
   </article>
 }
 
 function PhoneStatusIcons() {
-  return <span className="chat-status-icons" aria-label="Señal, Wi-Fi y batería"><Signal /><Wifi /><BatteryFull /></span>
+  return <span className="phone-status-icons" aria-label="Señal, Wi-Fi y batería"><Signal /><Wifi /><BatteryFull /></span>
 }
 
-function ChatHistoryPreview({ messages, followingMessages = [], contactName, contactAvatar, onClose }) {
+function ChatHistoryPreview({ messages, followingMessages = [], contactName, contactPhone = '+54 9 11 1103-1976', contactAvatar, onClose }) {
   const [visibleMessages, setVisibleMessages] = useState(messages)
   const [isTyping, setIsTyping] = useState(followingMessages.length > 0)
   const [draft, setDraft] = useState('')
@@ -848,7 +992,7 @@ function ChatHistoryPreview({ messages, followingMessages = [], contactName, con
   return <div className="chat-preview-overlay">
     <section className="chat-preview-window" aria-label="Chat">
       <div className="chat-status"><span>09:43</span><PhoneStatusIcons /></div>
-      <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver al chat completo" onClick={onClose}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><div className="chat-contact"><strong>{contactName || 'Número desconocido'}</strong><small>{contactName ? '+54 9 11 1103-1976' : 'últ. vez hoy a las 09:39'}</small></div><button aria-label="Videollamada"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button></header>
+      <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver al chat completo" onClick={onClose}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><div className="chat-contact"><strong>{contactName || 'Número desconocido'}</strong><small>{contactName ? contactPhone : 'últ. vez hoy a las 09:39'}</small></div><button aria-label="Videollamada"><Video aria-hidden="true" /></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button></header>
       <div className="chat-preview-messages">{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message) => <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}`} key={`preview-${message.id}`}><WhatsAppMessageBubble message={message} showTimestamp={Boolean(message.timestamp)} /></div>)}<div className="chat-date-divider">HOY</div></div>
       <div className="chat-composer chat-preview-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input"><input className="chat-message-input" aria-label="Mensaje" placeholder="Mensaje" value={draft} disabled={isTyping} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendText() } }} /></div><button className="composer-audio" aria-label={draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping} onClick={draft.trim() ? sendText : sendAudio}>{draft.trim() ? <Send /> : <Mic />}</button></div>
       <div className="chat-home-indicator" />
@@ -860,12 +1004,12 @@ function ChatAvatar({ contactAvatar }) {
   const [isOpen, setIsOpen] = useState(false)
   if (!contactAvatar) return <div className="chat-avatar"><span>J</span></div>
   return <>
-    <button type="button" className="chat-avatar chat-avatar-button" onClick={() => setIsOpen(true)} aria-label="Ver foto de perfil de Julián"><img src={contactAvatar} alt="" /></button>
-    {isOpen && <div className="chat-avatar-lightbox" role="dialog" aria-modal="true" aria-label="Foto de perfil de Julián" onClick={() => setIsOpen(false)}><button type="button" aria-label="Cerrar foto" onClick={() => setIsOpen(false)}>×</button><img src={contactAvatar} alt="Foto de perfil de Julián" onClick={(event) => event.stopPropagation()} /></div>}
+    <button type="button" className="chat-avatar chat-avatar-button" onClick={() => setIsOpen(true)} aria-label="Ver foto de perfil de Julián"><FlexibleAssetImage src={contactAvatar} alt="" /></button>
+    {isOpen && <div className="chat-avatar-lightbox" role="dialog" aria-modal="true" aria-label="Foto de perfil de Julián" onClick={() => setIsOpen(false)}><button type="button" aria-label="Cerrar foto" onClick={() => setIsOpen(false)}>×</button><FlexibleAssetImage src={contactAvatar} alt="Foto de perfil de Julián" onClick={(event) => event.stopPropagation()} /></div>}
   </>
 }
 
-function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories = storyData, durationPerStory = 15, clockTime = '09:41' }) {
+function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories = storyData, durationPerStory = 15, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.' }) {
   const [storyIndex, setStoryIndex] = useState(0)
   const [isStoryOpen, setIsStoryOpen] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -989,7 +1133,7 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
     storyPointerUp(event, true)
   }
 
-  if (!isStoryOpen) return <InstagramProfile username={username} avatarUrl={avatarUrl} clockTime={clockTime} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
+  if (!isStoryOpen) return <InstagramProfile username={username} avatarUrl={avatarUrl} clockTime={clockTime} bio={bio} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
   if (!story) return null
   const isZoomed = zoomScale > 1.02
   return <main className={`story-screen${isZoomed ? ' story-is-zoomed' : ''}`}>
@@ -999,34 +1143,32 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
         {(!story.mediaUrl || brokenImages[story.id]) && <div className="story-placeholder-art" style={{ transform: `scale(${zoomScale})` }}><span className="moon" /><span className="party-light light-one" /><span className="party-light light-two" /><span className="story-silhouette silhouette-one" /><span className="story-silhouette silhouette-two" />{storyIndex % 2 === 1 && <div className="couple-caption">J<span>&</span>A</div>}</div>}
         <div className="story-scrim" />
         <div className="story-progress-bars">{stories.map((item, index) => <div className="story-progress-track" key={item.id}><i style={{ width: `${index < storyIndex ? 100 : index === storyIndex ? progress * 100 : 0}%` }} /></div>)}</div>
-        <div className="story-account"><div className="story-avatar"><span>J</span>{avatarUrl && <img src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</div><strong>{username}</strong><span>1 h</span><button className="story-menu" aria-label="Más opciones">•••</button></div>
+        <div className="story-account"><div className="story-avatar"><span>J</span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</div><strong>{username}</strong><span>1 h</span><button className="story-menu" aria-label="Más opciones">•••</button></div>
         <div className="story-hit-zones"><button aria-label="Historia anterior" onClick={(event) => { if (event.detail === 0) changeStory(-1) }} /><button aria-label="Siguiente historia" onClick={(event) => { if (event.detail === 0) changeStory(1) }} /></div>
         <div className="story-caption">{story.caption}</div>
         <div className="story-reply"><span>Enviar mensaje</span><button aria-label="Me gusta">♡</button><button aria-label="Compartir">➤</button></div>
       </div>
       <div className="story-notch" />
     </div>
-    <button className="story-back" onClick={onHome}>← Panel</button>
   </main>
 }
 
-function InstagramProfile({ username, avatarUrl, posts = julianPosts, clockTime = '09:41', onOpenStories, onHome }) {
+function InstagramProfile({ username, avatarUrl, posts = julianPosts, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', onOpenStories, onHome }) {
   return <main className="story-screen">
     <section className="instagram-profile-frame">
-      <div className="instagram-profile-status"><span>{clockTime}</span><span>●●●　◖　▰</span></div>
-      <header className="instagram-profile-toolbar"><button onClick={onHome} aria-label="Volver al panel"><ArrowLeft /></button><strong>{username}</strong><button aria-label="Opciones"><Menu /></button></header>
+      <div className="instagram-profile-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
+      <header className="instagram-profile-toolbar"><button onClick={onHome} aria-label="Volver"><ArrowLeft /></button><strong>{username}</strong><button aria-label="Opciones"><Menu /></button></header>
       <div className="instagram-profile-content">
-        <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span></button><div className="instagram-profile-stats"><strong>Julián</strong><div><span><b>18</b> publicaciones</span><span><b>246</b> seguidores</span><span><b>318</b> seguidos</span></div></div></div>
-        <p className="instagram-profile-bio">Música, cine y alguna foto de madrugada.</p>
+        <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" />}</span></button><div className="instagram-profile-stats"><strong>Julián</strong><div><span><b>18</b> publicaciones</span><span><b>246</b> seguidores</span><span><b>318</b> seguidos</span></div></div></div>
+        <p className="instagram-profile-bio">{bio}</p>
         <div className="instagram-profile-actions"><button>Seguir</button><button>Mensaje</button><button aria-label="Compartir perfil"><Share2 /></button></div>
-        <button className="instagram-story-highlight" onClick={onOpenStories} aria-label="Abrir historias de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span><small>Historia</small></button>
+        <button className="instagram-story-highlight" onClick={onOpenStories} aria-label="Abrir historias de Julián"><span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" />}</span><small>Historia</small></button>
         <div className="instagram-profile-tabs"><span aria-label="Publicaciones"><Grid3X3 /></span><span aria-label="Videos"><Clapperboard /></span><span aria-label="Etiquetas"><UserRound /></span></div>
-        <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}><img className="instagram-profile-grid-photo" src={post.mediaUrl} alt={post.caption} /></button>)}</div>
+        <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}><FlexibleAssetImage className="instagram-profile-grid-photo" src={post.mediaUrl} alt={post.caption} /></button>)}</div>
       </div>
-      <div className="instagram-profile-bottom"><span aria-label="Inicio"><House /></span><span aria-label="Buscar"><Search /></span><button onClick={onOpenStories} aria-label="Perfil de Julián"><span>{avatarUrl && <img src={avatarUrl} alt="" />}</span></button></div>
+      <div className="instagram-profile-bottom"><span aria-label="Inicio"><House /></span><span aria-label="Buscar"><Search /></span><button onClick={onOpenStories} aria-label="Perfil de Julián"><span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" />}</span></button></div>
       <div className="instagram-profile-home-indicator" />
     </section>
-    <button className="story-back" onClick={onHome}>← Panel</button>
   </main>
 }
 
@@ -1078,11 +1220,12 @@ function LockScreen({ onHome, wallpaperUrl = '', notifications = [], notificatio
   const clock = clockTime || new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(now)
   const displayedDate = productionDate ? new Date(`${productionDate}T12:00:00`) : now
   const date = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(displayedDate)
-  return <main className="lock-screen">
-    {wallpaperUrl && !wallpaperFailed && <img className="lock-wallpaper-image" src={wallpaperUrl} alt="" onError={() => setWallpaperFailed(true)} />}
+  const hasWallpaperPhoto = Boolean(wallpaperUrl && !wallpaperFailed)
+  return <main className={`lock-screen${hasWallpaperPhoto ? ' has-wallpaper-photo' : ''}`}>
+    {wallpaperUrl && !wallpaperFailed && <FlexibleAssetImage className="lock-wallpaper-image" src={wallpaperUrl} alt="" onError={() => setWallpaperFailed(true)} />}
     {(!wallpaperUrl || wallpaperFailed) && <div className="lock-wallpaper-art"><div className="lock-horizon" /><div className="lock-orb" /><div className="lock-shadow lock-shadow-one" /><div className="lock-shadow lock-shadow-two" /></div>}
-    <button className="lock-return-hotspot" aria-label="Volver al panel" onClick={() => setCornerTaps((count) => count + 1)} />
-    <div className="lock-status"><span>{clock}</span><span>●●●　◖　▰</span></div>
+    <button className="lock-return-hotspot" aria-label="Volver" onClick={() => setCornerTaps((count) => count + 1)} />
+    <div className="lock-status"><span>{clock}</span><PhoneStatusIcons /></div>
     <div className="lock-date"><span className="lock-symbol">⌑</span><span>{date}</span></div>
     <time className="lock-clock">{clock}</time>
     <div className="lock-notifications">{notifications.map((notification, index) => {
@@ -1191,11 +1334,11 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
     setDraft('')
     setDynamicWaitingForInput(false)
     dynamicCursorRef.current = nextIndex
-    let outgoingIndex = 0
-    const deliverNextOutgoing = () => {
-      setMessages((current) => [...current, outgoingMessages[outgoingIndex]])
-      outgoingIndex += 1
-      if (outgoingIndex < outgoingMessages.length) scheduleCheckpoint(450, deliverNextOutgoing)
+    const deliverNextOutgoing = (outgoingIndex = 0) => {
+      const outgoingMessage = outgoingMessages[outgoingIndex]
+      if (!outgoingMessage) return
+      setMessages((current) => [...current, outgoingMessage])
+      if (outgoingIndex + 1 < outgoingMessages.length) scheduleCheckpoint(450, () => deliverNextOutgoing(outgoingIndex + 1))
       else scheduleCheckpoint(650, () => playDynamicSequenceFrom(nextIndex))
     }
     deliverNextOutgoing()
@@ -1362,14 +1505,12 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
 
   const visibleMessages = messages
   const dynamicComposerDisabled = dynamicReplay && (!dynamicCheckpointActive || !dynamicWaitingForInput)
-  const composerPlaceholder = dynamicReplay
-    ? !dynamicCheckpointActive ? 'Elegí un mensaje para continuar' : dynamicWaitingForInput ? 'Mensaje' : 'Esperá la secuencia…'
-    : 'Mensaje'
+  const composerPlaceholder = 'Mensaje'
 
   return <main className="chat-screen">
     <div className="chat-phone">
       <div className="chat-status"><span>{statusTime}</span><PhoneStatusIcons /></div>
-      <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver" onClick={() => setHeaderTaps((count) => count + 1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><button type="button" className="chat-contact chat-contact-trigger" onClick={openContactSheet} aria-label={displayName ? `Editar contacto ${displayName}` : `Agendar ${contactPhone}`}><strong>{displayName || contactPhone}</strong><small>{displayName ? contactPhone : 'últ. vez hoy a las 09:39'}</small></button><button aria-label="Videollamada"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10-5-3v10l5-3z"/></svg></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button><button aria-label="Opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></header>
+      <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver" onClick={() => setHeaderTaps((count) => count + 1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><button type="button" className="chat-contact chat-contact-trigger" onClick={openContactSheet} aria-label={displayName ? `Editar contacto ${displayName}` : `Agendar ${contactPhone}`}><strong>{displayName || contactPhone}</strong><small>{displayName ? contactPhone : 'últ. vez hoy a las 09:39'}</small></button><button aria-label="Videollamada"><Video aria-hidden="true" /></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button><button aria-label="Opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></header>
       <div className={`chat-messages-area${isScrollingMessages ? ' is-scrolling' : ''}`} onScroll={handleMessagesScroll}>{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message, reversedIndex) => { const messageIndex = visibleMessages.length - 1 - reversedIndex; return <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}`} key={message.id}><WhatsAppMessageBubble message={message} broken={brokenImages[message.id]} onImageError={() => setBrokenImages((current) => ({ ...current, [message.id]: true }))} showTimestamp={interactive || Boolean(message.timestamp)} previewable={!interactive} onClick={!interactive ? () => setCheckpoint(messageIndex) : undefined} /></div>})}{interactive && <div className="chat-date-divider">HOY</div>}</div>
       {showComposer && <div className="chat-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input">{isRecording ? <div className="chat-recording-active"><i /> Grabando audio... <span>soltá para cancelar</span></div> : <><input className="chat-message-input" aria-label="Mensaje" placeholder={composerPlaceholder} value={draft} disabled={isTyping || dynamicComposerDisabled} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendMessage() } }} /><button className="composer-sticker" aria-label="Stickers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v9l-6 6H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 20v-5a2 2 0 0 1 2-2h4"/></svg></button></>}</div><button className="composer-camera" aria-label="Cámara"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11H3V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button className={`composer-audio${isRecording ? ' is-recording' : ''}`} aria-label={awaitingInterruptedRecording ? 'Mantener para grabar audio' : draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping || dynamicComposerDisabled || (dynamicReplay && !draft.trim()) || (interactive && !draft.trim() && !canSendAudio && !awaitingInterruptedRecording)} onPointerDown={beginInterruptedRecording} onPointerUp={endInterruptedRecording} onPointerCancel={endInterruptedRecording} onClick={handleMicClick}>{draft.trim() && !awaitingInterruptedRecording ? <Send /> : <Mic />}</button></div>}
       {isContactSheetOpen && <div className="contact-sheet-overlay" onClick={() => setIsContactSheetOpen(false)}><section className="contact-sheet" role="dialog" aria-modal="true" aria-labelledby="contact-sheet-title" onClick={(event) => event.stopPropagation()}><div className="contact-sheet-grabber"/><header><button type="button" onClick={() => setIsContactSheetOpen(false)}>Cancelar</button><strong id="contact-sheet-title">{displayName ? 'Editar contacto' : 'Nuevo contacto'}</strong><button type="button" className="contact-save" disabled={!contactDraft.trim()} onClick={saveContact}>Guardar</button></header><label>Nombre<input value={contactDraft} placeholder="Escribí el nombre" autoFocus onChange={(event) => setContactDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') saveContact() }} /></label><label>Teléfono<input value={contactPhone} readOnly /></label>{displayName && <button type="button" className="contact-delete" onClick={deleteContact}>Eliminar contacto</button>}</section></div>}
@@ -1472,13 +1613,13 @@ function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada
   }
   const duration = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
-  if (callState === 'ended') return <main className="call-cut-screen" aria-label="Llamada finalizada">{showEndedMessage && <p className="call-ended-message" role="status">Llamada finalizada</p>}<button onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver al panel" /></main>
+  if (callState === 'ended') return <main className="call-cut-screen" aria-label="Llamada finalizada">{showEndedMessage && <p className="call-ended-message" role="status">Llamada finalizada</p>}<button onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver" /></main>
   return <main className="incoming-call-screen">
     <div className="call-wallpaper" />
-    <div className="call-status"><span>{clockTime}</span></div>
-    <div className="call-identity"><div className="call-avatar">{avatarUrl && <img src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}<span>J</span></div><h1>{callerName}</h1><p>{callState === 'connected' ? duration : callerSubtext}</p></div>
+    <div className="call-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
+    <div className="call-identity"><div className="call-avatar">{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}<span>J</span></div><h1>{callerName}</h1><p>{callState === 'connected' ? duration : callerSubtext}</p></div>
     <div className="call-actions">{callState === 'ringing' ? <><CallSlideControl action="reject" label="Rechazar" onAction={rejectCall} onTap={rejectCall} /><CallSlideControl action="accept" label="Aceptar" onAction={acceptCall} onTap={acceptCall} /></> : <><div className="call-action-group"><button className="call-action connected-control" aria-label="Silenciar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg></button><small>Silenciar</small></div><div className="call-action-group"><button className="call-action connected-control" aria-label="Altavoz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9a5 5 0 0 1 0 6m2.5-9a9 9 0 0 1 0 12"/></svg></button><small>Altavoz</small></div><div className="call-action-group"><button className="call-action reject" onClick={rejectCall} aria-label="Finalizar llamada"><svg className="call-handset decline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z"/></svg></button><small>Finalizar</small></div></>}</div>
-    <button className="call-return-hotspot" onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver al panel" />
+    <button className="call-return-hotspot" onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver" />
   </main>
 }
 

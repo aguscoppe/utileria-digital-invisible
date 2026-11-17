@@ -1,0 +1,14 @@
+.asset-upload-toast{position:fixed;z-index:2000;left:50%;bottom:24px;width:min(560px,calc(100vw - 32px));display:grid;grid-template-columns:34px minmax(0,1fr) 24px;align-items:start;gap:11px;padding:15px 14px;transform:translateX(-50%);border:1px solid #94a35b;border-radius:9px;background:#20231b;color:#eff1e6;box-shadow:0 14px 45px #0009;backdrop-filter:blur(16px);animation:asset-toast-in .18s ease-out both}
+.asset-upload-toast.error{border-color:#b85e55;background:#2b1d1c}
+.asset-upload-toast-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#344021;color:#d8e98c;font-size:16px;font-weight:700}
+.asset-upload-toast.error .asset-upload-toast-icon{background:#542b29;color:#ffaaa3}
+.asset-upload-toast strong{display:block;margin:2px 0 4px;font-size:13px;font-weight:600}
+.asset-upload-toast p{margin:0;color:#c6c8ba;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.asset-upload-toast button{width:24px;height:24px;padding:0;border:0;border-radius:50%;background:#ffffff12;color:#d2d3c9;font-size:20px;line-height:1;cursor:pointer}
+.asset-upload-toast button:hover{background:#ffffff24}
+@keyframes asset-toast-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(max-width:600px){.asset-upload-toast{bottom:calc(14px + env(safe-area-inset-bottom));width:calc(100vw - 24px);grid-template-columns:30px minmax(0,1fr) 24px;padding:13px 11px}.asset-upload-toast-icon{width:26px;height:26px}.asset-upload-toast strong{font-size:12px}.asset-upload-toast p{font-size:10px}}
+.asset-upload-groups{display:grid;gap:22px}.asset-upload-group h3{margin:0;padding:0 0 9px;border-bottom:1px solid #ffffff20;color:#c5d27d;font:600 10px ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase}.asset-upload-group .asset-upload-list{border-top:0}
+.asset-upload-subgroup{margin-top:16px}.asset-upload-subgroup h4{margin:0 0 7px;color:#a9ad97;font:600 9px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}.asset-upload-subgroup .asset-upload-list{border-top:1px solid #ffffff12}
+.asset-upload-row{grid-template-columns:minmax(0,1fr) auto}.asset-upload-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px}.asset-copy-profile-button{min-height:31px;padding:0 10px;border:1px solid #82905a;border-radius:3px;background:#293021;color:#dbe7a1;font-size:10px;cursor:pointer;white-space:nowrap}.asset-copy-profile-button:hover:not(:disabled){border-color:#c4d17c;background:#323a25}.asset-copy-profile-button:disabled{opacity:.5;cursor:default}
+@media(max-width:600px){.asset-upload-actions{grid-column:1/-1;justify-content:flex-start;gap:6px}.asset-copy-profile-button{font-size:9px;padding:0 8px}}
