@@ -18,6 +18,22 @@ npm run dev
 
 `npm install` se necesita la primera vez para descargar React, Vite y el plugin de React. Después, iniciá el servidor de desarrollo con `npm run dev` y abrí en el navegador la URL que Vite muestra en la terminal (normalmente `http://localhost:5173`).
 
+Para cargar archivos desde un celular, conectá el celular y la computadora a la misma red Wi-Fi y abrí desde el celular la dirección de red que muestra Vite (por ejemplo, `http://192.168.1.20:5173`). No uses `localhost` en el celular: esa dirección apunta al propio teléfono.
+
+Sin configurar una nube, la configuración y los archivos se guardan en la computadora que ejecuta el proyecto (`data/project-database.json` y `public/assets/`).
+
+### Sincronizar subidas desde cualquier lugar
+
+La app puede usar Supabase para compartir configuración y archivos entre dispositivos. Para activarlo:
+
+1. Creá un proyecto Supabase y ejecutá [`supabase/setup.sql`](supabase/setup.sql) en su SQL Editor.
+2. No hace falta crear usuarios de Authentication para usar esta app.
+3. Copiá `.env.example` a `.env.local` y completá `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` con los datos del proyecto.
+4. Reiniciá Vite o volvé a compilar y desplegar la app.
+5. En **Carga de archivos**, cualquiera puede subir o reemplazar los 13 assets administrados. Los ajustes compartidos también se guardan sin iniciar sesión.
+
+El bucket de archivos es público para que las escenas puedan mostrar imágenes y videos. Las reglas anónimas limitan la escritura a los nombres de archivo administrados por la app y a 100 MB por archivo, pero cualquier visitante puede reemplazarlos o borrarlos. Cualquier visitante también puede cambiar los ajustes compartidos (fecha, hora, número y bio). Los datos personalizados que hoy estén solo en `data/` o en `public/assets/` de una computadora no se migran solos: hay que volver a cargar esos archivos y configurar los ajustes una vez en la app conectada a Supabase.
+
 ## Otros comandos
 
 ```bash
@@ -38,18 +54,10 @@ Las tareas 1.1, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
 ## Assets de rodaje
 
-`public/assets/` contiene placeholders vacíos con estos nombres. Reemplazá cada archivo por el asset real conservando exactamente el nombre y la extensión:
+Usá **Carga de archivos** en la pantalla principal para reemplazar los wallpapers, fotos de perfil, publicaciones, historias, fotos del chat y video. Las imágenes pueden subirse en formatos comunes del teléfono; el servidor detecta la extensión y la app busca el archivo con su extensión real. Las tres publicaciones de Instagram permiten restaurar su imagen original.
 
-- `julian_profile.jpg`
-- `party_halloween.jpg`
-- `agustina_julian_party.jpg`
-- `emily_costume.jpg`
-- `crown_photo.jpg`
-- `martina_wallpaper_desktop.jpg`
-- `martina_wallpaper_mobile.jpg`
-
-Las pantallas ya implementadas apuntan a los wallpapers y fotos de perfil/historias correspondientes. Si un placeholder todavía está vacío, se muestra una ilustración CSS de respaldo. Los archivos de disfraz de Emily y la corona quedan listos para las escenas de chat que se implementarán después.
+Con Supabase configurado, los ajustes y el índice de assets se guardan en `project_state`, y los archivos binarios en el bucket `project-assets`. Sin esa configuración, se usa el almacenamiento local descrito arriba.
 
 ## Trabajo sin conexión
 
-Una vez instaladas las dependencias, Vite y la aplicación se ejecutan localmente. La app sirve los archivos de `public/assets/` con rutas locales como `/assets/nombre-del-archivo.jpg`, sin depender de una conexión externa.
+Una vez instaladas las dependencias, Vite y la aplicación se ejecutan localmente. El modo local sirve archivos desde `public/assets/`; el modo Supabase necesita conexión a internet para cargar y actualizar archivos.

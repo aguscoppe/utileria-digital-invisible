@@ -17,6 +17,7 @@ import './chat.css'
 import './ai-chat.css'
 import './asset-placeholders.css'
 import './upload-toast.css'
+import { cloudAssetSizes, cloudAssetUrl, cloudConfigured, copyCloudProfilePhoto, getCloudState, resetCloudAsset, saveCloudSettings, setCloudAssetManifest, uploadCloudAsset } from './cloud-sync.js'
 import './call.css'
 import './aspect-ratio-fixes.css'
 
@@ -145,14 +146,16 @@ const assets = {
   desktopWallpaper: '/assets/martina_wallpaper_desktop.jpg',
   mobileWallpaper: '/assets/martina_wallpaper_mobile.jpg',
 }
+const mateStoryImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"><defs><linearGradient id="wall" x2="0" y2="1"><stop stop-color="#b8aa96"/><stop offset="1" stop-color="#827565"/></linearGradient><linearGradient id="table" x2="0" y2="1"><stop stop-color="#74543d"/><stop offset="1" stop-color="#382820"/></linearGradient><linearGradient id="gourd" x2="1" y2="1"><stop stop-color="#b37b4d"/><stop offset=".52" stop-color="#79502f"/><stop offset="1" stop-color="#49301f"/></linearGradient><linearGradient id="metal" x2="1"><stop stop-color="#8a8c86"/><stop offset=".4" stop-color="#e5dfcb"/><stop offset=".7" stop-color="#9b9c95"/><stop offset="1" stop-color="#535650"/></linearGradient><filter id="soft"><feGaussianBlur stdDeviation="22"/></filter><filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2"/><feColorMatrix values=".5 0 0 0 .3 .5 0 0 0 .3 .5 0 0 0 .3 0 0 0 .12 0"/></filter></defs><rect width="1080" height="1920" fill="url(#wall)"/><g opacity=".72" filter="url(#soft)"><rect x="85" y="210" width="420" height="620" rx="18" fill="#e6d9bf"/><rect x="135" y="260" width="320" height="520" fill="#c6d0c2"/><circle cx="870" cy="390" r="190" fill="#d5a96e"/></g><path d="M0 1160h1080v760H0z" fill="url(#table)"/><path d="M0 1160c250-46 690 35 1080-15v105H0z" fill="#9a7454" opacity=".45"/><ellipse cx="545" cy="1473" rx="302" ry="83" fill="#1c1713" opacity=".42"/><ellipse cx="540" cy="1423" rx="269" ry="74" fill="#bfa88b"/><ellipse cx="540" cy="1412" rx="232" ry="53" fill="#e1d5c1"/><path d="M406 1040c18-105 63-178 132-178s114 73 132 178l52 323c17 104-66 186-184 186s-201-82-184-186z" fill="url(#gourd)"/><path d="M400 1047c74 31 208 32 280 0l11 67c-86 39-215 39-302 0z" fill="#c08b59"/><ellipse cx="540" cy="1047" rx="143" ry="51" fill="#3b291d"/><ellipse cx="540" cy="1044" rx="119" ry="35" fill="#53603b"/><path d="M552 1034 634 713q8-31 25-25 18 6 8 35l-94 324" fill="none" stroke="url(#metal)" stroke-width="20" stroke-linecap="round"/><path d="M486 1187c38 42 82 65 133 65" fill="none" stroke="#d4a171" stroke-width="18" stroke-linecap="round" opacity=".45"/><rect width="1080" height="1920" filter="url(#grain)" opacity=".14"/></svg>`)}`
 const storyData = [
+  { id: 'mate', mediaUrl: mateStoryImage, caption: 'un mate antes de salir 🧉' },
   { id: 'halloween', mediaUrl: assets.halloweenStory, caption: 'noche de halloween 🎃' },
   { id: 'friends', mediaUrl: assets.agustinaStory, caption: '🖤' },
 ]
 const julianPosts = [
-  { id: 'julian-profile-post', mediaUrl: '/assets/julian_profile_generated.png', caption: 'Julián' },
-  { id: 'julian-dog-post', mediaUrl: '/assets/julian_dog_post.png', caption: 'El perro de Julián' },
-  { id: 'julian-eiffel-post', mediaUrl: '/assets/julian_eiffel_post.png', caption: 'Julián en París' },
+  { id: 'julian-profile-post', mediaUrl: '/assets/julian_profile_generated.jpg', caption: 'Julián' },
+  { id: 'julian-dog-post', mediaUrl: '/assets/julian_dog_post.jpg', caption: 'El perro de Julián' },
+  { id: 'julian-eiffel-post', mediaUrl: '/assets/julian_eiffel_post.jpg', caption: 'Julián en París' },
 ]
 const promoEmails = [
   { sender: 'LavaLab', avatar: 'L', color: '#6c718f', time: 'AYER', subject: '¿Te gustó tu lámpara de lava?', preview: 'Contanos en una encuesta de 5 minutos.' },
@@ -168,6 +171,9 @@ const promoEmails = [
 ]
 const managedFiles = [
   { id: 'julian-profile-instagram', group: 'celular', subgroup: 'Instagram', filename: 'julian_profile_instagram.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
+  { id: 'julian-post-profile', group: 'celular', subgroup: 'Instagram', filename: 'julian_profile_generated.jpg', label: 'Publicación: foto de Julián', accept: 'image/*', original: true },
+  { id: 'julian-post-dog', group: 'celular', subgroup: 'Instagram', filename: 'julian_dog_post.jpg', label: 'Publicación: perro de Julián', accept: 'image/*', original: true },
+  { id: 'julian-post-eiffel', group: 'celular', subgroup: 'Instagram', filename: 'julian_eiffel_post.jpg', label: 'Publicación: Julián en París', accept: 'image/*', original: true },
   { id: 'julian-profile-whatsapp', group: 'celular', subgroup: 'WhatsApp', filename: 'julian_profile_whatsapp.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
   { id: 'party-halloween', group: 'celular', subgroup: 'Instagram', filename: 'party_halloween.jpg', label: 'Historia de Halloween', accept: 'image/*' },
   { id: 'agustina-julian-party', group: 'celular', subgroup: 'Instagram', filename: 'agustina_julian_party.jpg', label: 'Historia con Agustina y Julián', accept: 'image/*' },
@@ -183,14 +189,16 @@ const assetGroups = [
   { id: 'celular', label: 'Celular' },
 ]
 
-const imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'svg']
+const imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'svg', 'heic', 'heif']
 
 function FlexibleAssetImage({ src, onError, ...imageProps }) {
-  const candidates = React.useMemo(() => {
+  const candidates = (() => {
     if (!src || !src.startsWith('/assets/')) return [src]
+    const resolved = cloudAssetUrl(src)
+    if (resolved !== src) return [resolved]
     const base = src.replace(/\.[^/.?]+(?=\?|$)/, '')
     return [...new Set([src, ...imageExtensions.map((extension) => `${base}.${extension}`)])]
-  }, [src])
+  })()
   const [candidateIndex, setCandidateIndex] = useState(0)
   useEffect(() => setCandidateIndex(0), [src])
   return <img {...imageProps} src={candidates[candidateIndex] || src} onError={(event) => {
@@ -203,9 +211,6 @@ function AssetUploadSection() {
   const [fileSizes, setFileSizes] = useState({})
   const [uploading, setUploading] = useState('')
   const [notice, setNotice] = useState(null)
-  const [hasPendingRefresh, setHasPendingRefresh] = useState(() => {
-    try { return window.localStorage.getItem('asset-refresh-pending') === '1' } catch { return false }
-  })
   const noticeTimer = useRef(null)
   const displayFilename = (asset) => asset.filename.replace(/\.[^.]+$/, '')
 
@@ -218,10 +223,11 @@ function AssetUploadSection() {
   useEffect(() => () => window.clearTimeout(noticeTimer.current), [])
 
   useEffect(() => {
-    fetch('/__asset-manager/status').then((response) => {
+    const status = cloudConfigured ? cloudAssetSizes() : fetch('/__asset-manager/status').then((response) => {
       if (!response.ok) throw new Error('El servidor de archivos no respondió')
       return response.json()
-    }).then(setFileSizes).catch(() => showNotice('error', 'Carga de archivos no disponible', 'No se pudo conectar con el servidor del proyecto. Iniciá npm run dev y abrí la app desde esa dirección.'))
+    })
+    status.then(setFileSizes).catch(() => showNotice('error', 'Carga de archivos no disponible', cloudConfigured ? 'No se pudo conectar con el almacenamiento en la nube.' : 'No se pudo conectar con el servidor del proyecto. Iniciá npm run dev y abrí la app desde esa dirección.'))
   }, [])
 
   function explainUploadError(error, asset) {
@@ -231,14 +237,14 @@ function AssetUploadSection() {
     if (error.status === 415 || /imagen JPEG válida|video MP4 válido/i.test(detail)) {
       return asset.id === 'mail-video'
         ? 'El video no tiene un formato MP4 compatible o está dañado. Exportalo como MP4 y volvé a intentar.'
-        : 'No se pudo convertir la foto a JPEG. Probá con una imagen JPG, PNG o HEIC que el teléfono pueda abrir.'
+        : 'No se pudo reconocer el formato de la imagen. Probá con un archivo de imagen válido, como JPG, PNG, WebP o HEIC.'
     }
     if (error.status === 400 || /archivo está vacío/i.test(detail)) return 'El archivo llegó vacío o la transferencia se interrumpió. Seleccionalo otra vez.'
     if (error.status === 404) return 'No se encontró el destino de este archivo en el proyecto. Recargá la página y volvé a intentar.'
     if (/ENOSPC/i.test(detail)) return 'La computadora no tiene espacio libre suficiente para guardar el archivo.'
     if (/EACCES|EPERM/i.test(detail)) return 'El proyecto no tiene permiso para escribir en public/assets. Revisá los permisos de esa carpeta.'
     if (error.status >= 500) return 'El servidor no pudo guardar el archivo. Revisá que el proyecto tenga espacio y permisos de escritura.'
-    if (error instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(detail)) return 'Se perdió la conexión con la computadora. Mantené npm run dev abierto y conectá el teléfono a la misma red.'
+    if (error instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(detail)) return cloudConfigured ? 'Se perdió la conexión con el almacenamiento en la nube. Revisá la conexión a internet e intentá otra vez.' : 'Se perdió la conexión con la computadora. Mantené npm run dev abierto y conectá el teléfono a la misma red.'
     if (/no pudo abrir esta foto|no pudo leer las dimensiones/i.test(detail)) return 'El teléfono no puede leer este formato. Exportá la imagen como JPG o PNG y probá de nuevo.'
     if (/no se pudo convertir|preparar la foto|contexto 2d/i.test(detail)) return 'El teléfono no pudo preparar la imagen. Probá con una foto de menor tamaño o guardada como JPG.'
     if (/video|MP4/i.test(detail)) return 'No se pudo leer el video. Confirmá que sea un MP4 válido y volvé a seleccionarlo.'
@@ -271,9 +277,13 @@ function AssetUploadSection() {
         image = await new Promise((resolve, reject) => {
           const loadedImage = new Image()
           loadedImage.onload = () => resolve(loadedImage)
-          loadedImage.onerror = () => reject(new Error('El teléfono no pudo abrir esta foto. Guardala como JPEG o HEIC compatible y volvé a intentar.'))
+          loadedImage.onerror = () => reject(new Error('El teléfono no pudo abrir esta foto'))
           loadedImage.src = url
         })
+      } catch {
+        // Some mobile browsers cannot decode HEIC/HEIF locally. Keep the original;
+        // the server validates the actual image bytes and stores the matching extension.
+        return file
       } finally { URL.revokeObjectURL(url) }
     }
     const imageWidth = image.width || image.naturalWidth
@@ -304,17 +314,15 @@ function AssetUploadSection() {
     setNotice(null)
     try {
       const uploadFileData = await prepareAssetFile(asset, file)
-      const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', headers: { 'Content-Type': uploadFileData.type || 'application/octet-stream' }, body: uploadFileData })
-      if (!response.ok) {
-        const error = new Error(await response.text())
-        error.status = response.status
-        throw error
+      let result
+      if (cloudConfigured) result = await uploadCloudAsset(asset.id, uploadFileData)
+      else {
+        const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', headers: { 'Content-Type': uploadFileData.type || 'application/octet-stream' }, body: uploadFileData })
+        if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
+        result = await response.json()
       }
-      const result = await response.json()
       setFileSizes((current) => ({ ...current, [asset.id]: result.size }))
-      setHasPendingRefresh(true)
-      try { window.localStorage.setItem('asset-refresh-pending', '1') } catch {}
-      showNotice('success', 'Archivo subido', `${displayFilename(asset)} se guardó correctamente. Tocá «Actualizar vistas» para recargar las escenas con el archivo nuevo.`)
+      showNotice('success', 'Archivo subido', `${displayFilename(asset)} se guardó correctamente.`)
     } catch (error) {
       showNotice('error', `No se pudo subir ${displayFilename(asset)}`, explainUploadError(error, asset))
     } finally {
@@ -326,16 +334,15 @@ function AssetUploadSection() {
     setUploading(asset.id)
     setNotice(null)
     try {
-      const response = await fetch(`/__asset-manager/reset/${asset.id}`, { method: 'POST' })
-      if (!response.ok) {
-        const error = new Error(await response.text())
-        error.status = response.status
-        throw error
+      let result
+      if (cloudConfigured) result = await resetCloudAsset(asset.id, asset.original)
+      else {
+        const response = await fetch(`/__asset-manager/reset/${asset.id}`, { method: 'POST' })
+        if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
+        result = await response.json()
       }
-      setFileSizes((current) => ({ ...current, [asset.id]: 0 }))
-      setHasPendingRefresh(true)
-      try { window.localStorage.setItem('asset-refresh-pending', '1') } catch {}
-      showNotice('success', 'Placeholder restaurado', `${displayFilename(asset)} volvió a quedar vacío. Tocá «Actualizar vistas» para recargar las escenas.`)
+      setFileSizes((current) => ({ ...current, [asset.id]: result.size || 0 }))
+      showNotice('success', asset.original ? 'Imagen original restaurada' : 'Placeholder restaurado', `${displayFilename(asset)} ${asset.original ? 'volvió a su imagen original' : 'volvió a quedar vacío'}.`)
     } catch (error) {
       showNotice('error', `No se pudo restaurar ${displayFilename(asset)}`, explainUploadError(error, asset))
     } finally {
@@ -347,16 +354,14 @@ function AssetUploadSection() {
     setUploading(target.id)
     setNotice(null)
     try {
-      const response = await fetch(`/__asset-manager/copy-profile/${target.id}/${source.id}`, { method: 'POST' })
-      if (!response.ok) {
-        const error = new Error(await response.text())
-        error.status = response.status
-        throw error
+      let result
+      if (cloudConfigured) result = await copyCloudProfilePhoto(target.id, source.id)
+      else {
+        const response = await fetch(`/__asset-manager/copy-profile/${target.id}/${source.id}`, { method: 'POST' })
+        if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
+        result = await response.json()
       }
-      const result = await response.json()
       setFileSizes((current) => ({ ...current, [target.id]: result.size }))
-      setHasPendingRefresh(true)
-      try { window.localStorage.setItem('asset-refresh-pending', '1') } catch {}
       showNotice('success', 'Foto de perfil reutilizada', `La foto de ${source.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'} también se usará en ${target.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'}.`)
     } catch (error) {
       showNotice('error', 'No se pudo reutilizar la foto', explainUploadError(error, target))
@@ -376,14 +381,14 @@ function AssetUploadSection() {
         <div className="asset-upload-actions">
           <label className="asset-file-picker">{uploading === asset.id ? 'Guardando…' : 'Elegir archivo'}<input type="file" accept={asset.id === 'mail-video' ? 'video/mp4' : 'image/*'} disabled={Boolean(uploading)} onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(asset, file); event.target.value = '' }} /></label>
           {canUseCounterpart && <button type="button" className="asset-copy-profile-button" disabled={Boolean(uploading)} onClick={() => useOtherProfilePhoto(asset, counterpart)}>Usar foto de {counterpart.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'}</button>}
-          <button type="button" className="asset-reset-button" disabled={!size || Boolean(uploading)} onClick={() => resetFile(asset)}>Restaurar vacío</button>
+          <button type="button" className="asset-reset-button" disabled={!size || Boolean(uploading)} onClick={() => resetFile(asset)}>{asset.original ? 'Restaurar original' : 'Restaurar vacío'}</button>
         </div>
       </article>
     })}</div>
   }
 
-  return <section className="asset-upload-section" aria-label="Carga de archivos">
-    <div className="asset-upload-heading"><div><p className="eyebrow">ARCHIVOS DEL PROYECTO</p><h2>Carga de archivos</h2><p>Los archivos se guardan en <code>public/assets/</code>. Después de cargar o restaurar uno, tocá «Actualizar vistas» para recargar las escenas con el cambio.</p></div>{hasPendingRefresh && <button type="button" className="asset-reload-button" onClick={() => { try { window.localStorage.removeItem('asset-refresh-pending') } catch {}; window.location.reload() }}>Actualizar vistas</button>}</div>
+  return <section className="asset-upload-section" aria-label="Archivos">
+    <div className="asset-upload-heading"><h2>Carga de archivos</h2></div>
     <div className="asset-upload-groups">{assetGroups.map((group) => {
       const groupFiles = managedFiles.filter((asset) => asset.group === group.id)
       const generalFiles = groupFiles.filter((asset) => !asset.subgroup)
@@ -400,6 +405,7 @@ function AssetUploadSection() {
     {notice && <div className={`asset-upload-toast ${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}><span className="asset-upload-toast-icon" aria-hidden="true">{notice.type === 'success' ? '✓' : '!'}</span><div><strong>{notice.title}</strong><p>{notice.detail}</p></div><button type="button" aria-label="Cerrar aviso" onClick={() => { window.clearTimeout(noticeTimer.current); setNotice(null) }}>×</button></div>}
   </section>
 }
+
 function App() {
   const [path, setPath] = useState(window.location.pathname)
   const defaultProductionDate = '2026-10-31'
@@ -420,6 +426,84 @@ function App() {
   const [instagramBio, setInstagramBio] = useState(() => {
     try { return window.localStorage.getItem('instagram-bio') ?? defaultInstagramBio } catch { return defaultInstagramBio }
   })
+  const [mailDurationSeconds, setMailDurationSeconds] = useState(() => {
+    try {
+      const saved = Number(window.localStorage.getItem('assistant-mail-duration-seconds'))
+      return Number.isFinite(saved) && saved >= 1 ? String(Math.min(saved, 60)) : '7'
+    } catch { return '7' }
+  })
+  const [mailNotificationDelaySeconds, setMailNotificationDelaySeconds] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('mail-notification-delay-seconds')
+      const saved = stored === null ? NaN : Number(stored)
+      return Number.isFinite(saved) && saved >= 0 ? String(Math.min(saved, 60)) : '1.8'
+    } catch { return '1.8' }
+  })
+  const [projectDatabaseReady, setProjectDatabaseReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const fallbackSettings = {
+      productionDate,
+      clockTime,
+      julianPhone,
+      instagramBio,
+      mailDurationSeconds: Number(mailDurationSeconds) || 7,
+      mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8,
+      julianContactName: (() => { try { return window.localStorage.getItem('julian-contact-name') || '' } catch { return '' } })(),
+    }
+    const databaseRequest = cloudConfigured ? getCloudState() : fetch('/__asset-manager/db').then((response) => {
+      if (!response.ok) throw new Error('Database unavailable')
+      return response.json()
+    })
+    databaseRequest.then((database) => {
+      if (cancelled) return
+      const saved = database.settings || {}
+      const missingSettings = {}
+      const apply = (key, value, setValue, localKey = key) => {
+        if (Object.prototype.hasOwnProperty.call(saved, key)) {
+          setValue(String(saved[key]))
+          try { window.localStorage.setItem(localKey, String(saved[key])) } catch {}
+        } else missingSettings[key] = fallbackSettings[key]
+      }
+      apply('productionDate', saved.productionDate ?? fallbackSettings.productionDate, setProductionDate, 'production-date')
+      apply('clockTime', saved.clockTime ?? fallbackSettings.clockTime, setClockTime, 'production-clock-time')
+      apply('julianPhone', saved.julianPhone ?? fallbackSettings.julianPhone, setJulianPhone, 'julian-phone')
+      apply('instagramBio', saved.instagramBio ?? fallbackSettings.instagramBio, setInstagramBio, 'instagram-bio')
+      if (Object.prototype.hasOwnProperty.call(saved, 'mailDurationSeconds')) {
+        const value = String(Math.min(60, Math.max(1, Number(saved.mailDurationSeconds) || 7)))
+        setMailDurationSeconds(value)
+        try { window.localStorage.setItem('assistant-mail-duration-seconds', value) } catch {}
+      } else missingSettings.mailDurationSeconds = fallbackSettings.mailDurationSeconds
+      if (Object.prototype.hasOwnProperty.call(saved, 'mailNotificationDelaySeconds')) {
+        const value = String(Math.min(60, Math.max(0, Number(saved.mailNotificationDelaySeconds) || 0)))
+        setMailNotificationDelaySeconds(value)
+        try { window.localStorage.setItem('mail-notification-delay-seconds', value) } catch {}
+      } else missingSettings.mailNotificationDelaySeconds = fallbackSettings.mailNotificationDelaySeconds
+      if (Object.prototype.hasOwnProperty.call(saved, 'julianContactName')) {
+        try {
+          if (saved.julianContactName) window.localStorage.setItem('julian-contact-name', String(saved.julianContactName))
+          else window.localStorage.removeItem('julian-contact-name')
+        } catch {}
+      } else missingSettings.julianContactName = fallbackSettings.julianContactName
+      if (Object.keys(missingSettings).length) {
+        if (cloudConfigured) saveCloudSettings(missingSettings).catch(() => {})
+        else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(missingSettings) }).catch(() => {})
+      }
+      setProjectDatabaseReady(true)
+    }).catch(() => { if (!cancelled) setProjectDatabaseReady(true) })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!projectDatabaseReady) return undefined
+    const settings = { productionDate, clockTime, julianPhone, instagramBio, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8 }
+    const timer = window.setTimeout(() => {
+      if (cloudConfigured) saveCloudSettings(settings).catch(() => {})
+      else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(() => {})
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [projectDatabaseReady, productionDate, clockTime, julianPhone, instagramBio, mailDurationSeconds, mailNotificationDelaySeconds])
 
   function updateClockTime(value) {
     setClockTime(value)
@@ -439,6 +523,24 @@ function App() {
   function updateInstagramBio(value) {
     setInstagramBio(value)
     try { window.localStorage.setItem('instagram-bio', value) } catch {}
+  }
+
+  function updateMailDurationSeconds(value) {
+    setMailDurationSeconds(value)
+    const seconds = Number(value)
+    if (value === '' || !Number.isFinite(seconds) || seconds < 1) return
+    const boundedSeconds = Math.min(Math.round(seconds), 60)
+    setMailDurationSeconds(String(boundedSeconds))
+    try { window.localStorage.setItem('assistant-mail-duration-seconds', String(boundedSeconds)) } catch {}
+  }
+
+  function updateMailNotificationDelaySeconds(value) {
+    setMailNotificationDelaySeconds(value)
+    const seconds = Number(value)
+    if (value === '' || !Number.isFinite(seconds) || seconds < 0) return
+    const boundedSeconds = Math.min(seconds, 60)
+    setMailNotificationDelaySeconds(String(boundedSeconds))
+    try { window.localStorage.setItem('mail-notification-delay-seconds', String(boundedSeconds)) } catch {}
   }
 
   useEffect(() => {
@@ -470,8 +572,8 @@ function App() {
   if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} />
   if (selected) {
     if (selected.path === '/notebook/esc1a-p2') return <DesktopView onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} />
-    if (selected.path === '/notebook/esc1g-p2') return <MailDesktopScene onHome={() => navigate('/')} clockTime={clockTime} />
-    if (selected.path === '/notebook/esc3-p2') return <MailToAssistantScene onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} />
+    if (selected.path === '/notebook/esc1g-p2') return <MailDesktopScene onHome={() => navigate('/')} clockTime={clockTime} mailBadgeDelayMs={(Number(mailNotificationDelaySeconds) || 0) * 1000} />
+    if (selected.path === '/notebook/esc3-p2') return <MailToAssistantScene onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} mailDurationMs={(Number(mailDurationSeconds) || 7) * 1000} clockTime={clockTime} />
     if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} avatarUrl={assets.julianInstagramAvatar} clockTime={clockTime} bio={instagramBio} />
     if (selected.path === '/mobile/esc1c-p1') return <LockScreen onHome={() => navigate('/')} wallpaperUrl={assets.mobileWallpaper} clockTime={clockTime} productionDate={productionDate} />
     if (selected.path === '/mobile/esc1c-p5') return <LockScreen onHome={() => navigate('/')} clockTime={clockTime} productionDate={productionDate} notificationDelayMs={5000} notificationStaggerMs={900} notifications={[
@@ -514,14 +616,14 @@ function App() {
         })}</div>
       </section>
       <section className="clock-tool" aria-label="Personalizar horario">
-        <div><p className="eyebrow">CONFIGURACIÓN</p><h2>Fecha y hora de las pantallas</h2><p>Se aplican a los relojes y la fecha del celular. Las marcas dentro de los mensajes no cambian.</p></div>
-        <div className="clock-tool-fields"><label>Fecha<input type="date" value={productionDate} onChange={(event) => updateProductionDate(event.target.value)} /></label><label>Hora<input type="time" value={clockTime} onChange={(event) => updateClockTime(event.target.value)} /></label></div>
+        <div className="clock-tool-heading"><p className="eyebrow">CONFIGURACIÓN</p><h2>Fecha y hora de las pantallas</h2><p>Se aplican a los relojes y la fecha del celular. Las marcas dentro de los mensajes no cambian.</p></div>
+        <div className="clock-tool-fields"><label><span>Fecha</span><input type="date" value={productionDate} onChange={(event) => updateProductionDate(event.target.value)} /></label><label><span>Hora</span><input type="time" value={clockTime} onChange={(event) => updateClockTime(event.target.value)} /></label><label><span>Correo (segundos)</span><input type="number" min="1" max="60" step="1" value={mailDurationSeconds} onChange={(event) => updateMailDurationSeconds(event.target.value)} /></label><label><span>Demora de notificación (segundos)</span><input type="number" min="0" max="60" step="0.1" value={mailNotificationDelaySeconds} onChange={(event) => updateMailNotificationDelaySeconds(event.target.value)} /></label></div>
       </section>
       <section className="project-text-tool" aria-label="Datos de Julián">
         <div><p className="eyebrow">PERFILES</p><h2>Datos de Julián</h2></div>
         <div className="project-text-tool-fields">
-          <label>Número de WhatsApp<input type="text" value={julianPhone} onChange={(event) => updateJulianPhone(event.target.value)} /></label>
-          <label>Bio de Instagram<input type="text" value={instagramBio} onChange={(event) => updateInstagramBio(event.target.value)} /></label>
+          <label><span>Número de WhatsApp</span><input type="text" value={julianPhone} onChange={(event) => updateJulianPhone(event.target.value)} /></label>
+          <label><span>Bio de Instagram</span><input type="text" value={instagramBio} onChange={(event) => updateInstagramBio(event.target.value)} /></label>
         </div>
       </section>
       <AssetUploadSection />
@@ -651,7 +753,7 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
   </main>
 }
 
-function WebmailView({ onHome, onClose = onHome, onMinimize = onHome, onZoom = () => {}, isZoomed = false, autoMinimizeAfterMs = null, initiallyRead = false, senderName = 'JULIÁN', senderEmail = 'julian.v@mail.com', subject = 'Video', attachmentVideoUrl = '/assets/video_01.mp4', isAttachmentLoading: startsLoading = false, clockTime = '09:41' }) {
+function WebmailView({ onHome, onClose = onHome, onMinimize = onHome, onZoom = () => {}, isZoomed = false, autoMinimizeAfterMs = null, initiallyRead = false, senderName = 'JULIÁN', senderEmail = 'julian.v@mail.com', subject = 'Video', attachmentVideoUrl = cloudAssetUrl('/assets/video_01.mp4'), isAttachmentLoading: startsLoading = false, clockTime = '09:41' }) {
   const [attachmentOpen, setAttachmentOpen] = useState(false)
   const [isAttachmentLoading, setIsAttachmentLoading] = useState(startsLoading)
   const [videoUnavailable, setVideoUnavailable] = useState(false)
@@ -708,7 +810,7 @@ function WebmailView({ onHome, onClose = onHome, onMinimize = onHome, onZoom = (
   </main>
 }
 
-function MailDesktopScene({ onHome, clockTime = '09:41' }) {
+function MailDesktopScene({ onHome, clockTime = '09:41', mailBadgeDelayMs = 1800 }) {
   const [isMailOpen, setIsMailOpen] = useState(false)
   const [mailNotificationDismissed, setMailNotificationDismissed] = useState(false)
   const [isMailZoomed, setIsMailZoomed] = useState(false)
@@ -717,10 +819,10 @@ function MailDesktopScene({ onHome, clockTime = '09:41' }) {
     setIsMailOpen(true)
   }
   if (isMailOpen) return <WebmailView onHome={onHome} onClose={() => { setIsMailOpen(false); setIsMailZoomed(false) }} onMinimize={() => setIsMailOpen(false)} onZoom={() => setIsMailZoomed((value) => !value)} isZoomed={isMailZoomed} clockTime={clockTime} />
-  return <DesktopView onHome={onHome} wallpaperUrl={assets.desktopWallpaper} showMusic={false} onOpenMail={openMail} showMailBadge={!mailNotificationDismissed} mailBadgeDelayMs={1800} clockTime={clockTime} />
+  return <DesktopView onHome={onHome} wallpaperUrl={assets.desktopWallpaper} showMusic={false} onOpenMail={openMail} showMailBadge={!mailNotificationDismissed} mailBadgeDelayMs={mailBadgeDelayMs} clockTime={clockTime} />
 }
 
-function MailToAssistantScene({ onHome, wallpaperUrl, clockTime = '09:41' }) {
+function MailToAssistantScene({ onHome, wallpaperUrl, mailDurationMs = 7000, clockTime = '09:41' }) {
   const [mailVisible, setMailVisible] = useState(true)
   const [assistantReady, setAssistantReady] = useState(false)
   const assistantOpenTimer = useRef(null)
@@ -734,7 +836,7 @@ function MailToAssistantScene({ onHome, wallpaperUrl, clockTime = '09:41' }) {
 
   return <div className="mail-assistant-sequence">
     <div className="mail-assistant-desktop"><DesktopView onHome={onHome} wallpaperUrl={wallpaperUrl} showMusic={false} autoOpenAssistant={assistantReady} autoOpenAssistantDelayMs={0} clockTime={clockTime} /></div>
-    {mailVisible && <div className="mail-assistant-cover"><WebmailView onHome={onHome} onClose={onHome} onMinimize={minimizeMail} autoMinimizeAfterMs={5000} initiallyRead clockTime={clockTime} /></div>}
+    {mailVisible && <div className="mail-assistant-cover"><WebmailView onHome={onHome} onClose={onHome} onMinimize={minimizeMail} autoMinimizeAfterMs={mailDurationMs} initiallyRead clockTime={clockTime} /></div>}
   </div>
 }
 
@@ -810,7 +912,7 @@ function TypewriterTerminal({ onHome, lines = terminalLines, typingSpeed = 20, i
   }, [onHome])
 
   return <main className={`terminal-screen${isWindow ? ' terminal-window-mode' : ''}${isWindowOpening ? ' is-window-opening' : ''}${isWindowZoomed ? ' is-window-zoomed' : ''}`} style={isWindow && windowPosition && !isWindowZoomed ? { left: `${windowPosition.x}px`, top: `${windowPosition.y}px`, transform: 'none' } : undefined}>
-    <div className={isWindow ? 'assistant-app-titlebar' : 'browser-chrome'} onPointerDown={isWindow ? onWindowPointerDown : undefined} onPointerMove={isWindow ? onWindowPointerMove : undefined} onPointerUp={isWindow ? onWindowPointerUp : undefined} onPointerCancel={isWindow ? onWindowPointerUp : undefined}><div className="browser-window-controls">{isWindow ? <><button type="button" className="mac-window-control close" aria-label="Cerrar asistente" title="Cerrar" onClick={onWindowClose}><X /></button><button type="button" className="mac-window-control minimize" aria-label="Minimizar asistente" title="Minimizar" onClick={onWindowMinimize}><Minus /></button><button type="button" className="mac-window-control zoom" aria-label={isWindowZoomed ? 'Restaurar asistente' : 'Ampliar asistente'} title={isWindowZoomed ? 'Restaurar' : 'Ampliar'} onClick={onWindowZoom}>{isWindowZoomed ? <Minimize2 /> : <Maximize2 />}</button></> : <><i /><i /><i /></>}</div>{isWindow ? <strong className="assistant-app-title">asistente<span>.</span></strong> : <><div className="browser-tab"><span className="incognito-symbol">◉</span> Nueva pestaña — Incógnito <b>×</b></div><div className="browser-new-tab">＋</div><div className="browser-address"><span>◉</span><span>{isIncognito ? 'Incógnito' : 'Protocolo privado'}</span><span className="address-divider">|</span><span className="address-muted">La actividad de esta ventana no aparecerá...</span><span className="address-menu">⋮</span></div></>}</div>
+    <div className={isWindow ? 'assistant-app-titlebar' : 'browser-chrome'} onPointerDown={isWindow ? onWindowPointerDown : undefined} onPointerMove={isWindow ? onWindowPointerMove : undefined} onPointerUp={isWindow ? onWindowPointerUp : undefined} onPointerCancel={isWindow ? onWindowPointerUp : undefined}><div className="browser-window-controls">{isWindow ? <><button type="button" className="mac-window-control close" aria-label="Cerrar asistente" title="Cerrar" onClick={onWindowClose}><X /></button><button type="button" className="mac-window-control minimize" aria-label="Minimizar asistente" title="Minimizar" onClick={onWindowMinimize}><Minus /></button><button type="button" className="mac-window-control zoom" aria-label={isWindowZoomed ? 'Restaurar asistente' : 'Ampliar asistente'} title={isWindowZoomed ? 'Restaurar' : 'Ampliar'} onClick={onWindowZoom}>{isWindowZoomed ? <Minimize2 /> : <Maximize2 />}</button></> : <><i /><i /><i /></>}</div>{!isWindow && <><div className="browser-tab"><span className="incognito-symbol">◉</span> Nueva pestaña — Incógnito <b>×</b></div><div className="browser-new-tab">＋</div><div className="browser-address"><span>◉</span><span>{isIncognito ? 'Incógnito' : 'Protocolo privado'}</span><span className="address-divider">|</span><span className="address-muted">La actividad de esta ventana no aparecerá...</span><span className="address-menu">⋮</span></div></>}</div>
     {glitchPhase > 0 && <div className={`assistant-glitch-overlay assistant-glitch-phase-${glitchPhase}`} aria-hidden="true"><span>{glitchPhase === 1 ? '0x7F 0xA9 0xF3 0x1C 0x00' : glitchPhase === 2 ? '0xA4 0x7D 0x09 0xC3 0xFF 0x21 0x8E' : '0x3A 0x0F 0xB2 0xE1 0x64'}</span></div>}
     <section className="terminal-content"><div className="terminal-brand"><span className="terminal-emblem">◈</span><div><strong>asistente<span>.</span></strong><small>PROCESO AUTÓNOMO <i>●</i></small></div></div><div className="terminal-rule" />
       <div className="terminal-output assistant-sequence" aria-live="polite"><div className={`assistant-thinking-visual is-thinking${isComplete ? ' is-complete' : ''}`}><span className="assistant-orbit orbit-one"/><span className="assistant-orbit orbit-two"/><span className="assistant-thinking-core">◈</span></div><div className={`assistant-sequence-text${isErasing ? ' is-erasing' : ''}`} aria-live="polite">{currentText}{isThinking && !isErasing && <i className="type-cursor" />}</div><small className="assistant-sequence-counter">{String(Math.min(sequenceIndex + 1, lines.length)).padStart(2, '0')} / {String(lines.length).padStart(2, '0')}</small></div>
@@ -1139,7 +1241,7 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
   return <main className={`story-screen${isZoomed ? ' story-is-zoomed' : ''}`}>
     <div className={`story-frame${isZoomed ? ' is-zoomed' : ''}`}>
       <div className={`story-media story-art-${storyIndex % 2}${isZoomed ? ' is-zoomed' : ''}`} style={{ touchAction: 'none' }} onPointerDown={storyPointerDown} onPointerMove={storyPointerMove} onPointerUp={storyPointerUp} onPointerCancel={cancelStoryPress}>
-        {story.mediaUrl && !brokenImages[story.id] && <img className="story-photo" style={{ transform: `scale(${zoomScale})`, transition: activePointersRef.current.size > 1 ? 'none' : 'transform .2s ease-out' }} src={story.mediaUrl} alt={story.caption} onError={() => setBrokenImages((current) => ({ ...current, [story.id]: true }))} />}
+        {story.mediaUrl && !brokenImages[story.id] && <img className="story-photo" style={{ transform: `scale(${zoomScale})`, transition: activePointersRef.current.size > 1 ? 'none' : 'transform .2s ease-out' }} src={cloudAssetUrl(story.mediaUrl)} alt={story.caption} onError={() => setBrokenImages((current) => ({ ...current, [story.id]: true }))} />}
         {(!story.mediaUrl || brokenImages[story.id]) && <div className="story-placeholder-art" style={{ transform: `scale(${zoomScale})` }}><span className="moon" /><span className="party-light light-one" /><span className="party-light light-two" /><span className="story-silhouette silhouette-one" /><span className="story-silhouette silhouette-two" />{storyIndex % 2 === 1 && <div className="couple-caption">J<span>&</span>A</div>}</div>}
         <div className="story-scrim" />
         <div className="story-progress-bars">{stories.map((item, index) => <div className="story-progress-track" key={item.id}><i style={{ width: `${index < storyIndex ? 100 : index === storyIndex ? progress * 100 : 0}%` }} /></div>)}</div>
@@ -1161,8 +1263,8 @@ function InstagramProfile({ username, avatarUrl, posts = julianPosts, clockTime 
       <div className="instagram-profile-content">
         <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" />}</span></button><div className="instagram-profile-stats"><strong>Julián</strong><div><span><b>18</b> publicaciones</span><span><b>246</b> seguidores</span><span><b>318</b> seguidos</span></div></div></div>
         <p className="instagram-profile-bio">{bio}</p>
-        <div className="instagram-profile-actions"><button>Seguir</button><button>Mensaje</button><button aria-label="Compartir perfil"><Share2 /></button></div>
-        <button className="instagram-story-highlight" onClick={onOpenStories} aria-label="Abrir historias de Julián"><span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" />}</span><small>Historia</small></button>
+        <div className="instagram-profile-actions"><button>Siguiendo</button><button>Mensaje</button><button aria-label="Compartir perfil"><Share2 /></button></div>
+        <button className="instagram-story-highlight" onClick={onOpenStories} aria-label="Abrir historias de Julián"><span aria-hidden="true" /><small>Historia</small></button>
         <div className="instagram-profile-tabs"><span aria-label="Publicaciones"><Grid3X3 /></span><span aria-label="Videos"><Clapperboard /></span><span aria-label="Etiquetas"><UserRound /></span></div>
         <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}><FlexibleAssetImage className="instagram-profile-grid-photo" src={post.mediaUrl} alt={post.caption} /></button>)}</div>
       </div>
@@ -1247,6 +1349,21 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
   const [contactDraft, setContactDraft] = useState(() => {
     try { return window.localStorage.getItem('julian-contact-name') || contactName || '' } catch { return contactName || '' }
   })
+  useEffect(() => {
+    let cancelled = false
+    const contactDatabase = cloudConfigured ? getCloudState() : fetch('/__asset-manager/db').then((response) => response.ok ? response.json() : null)
+    contactDatabase.then((database) => {
+      if (cancelled || !Object.prototype.hasOwnProperty.call(database?.settings || {}, 'julianContactName')) return
+      const name = String(database.settings.julianContactName || '')
+      setDisplayName(name)
+      setContactDraft(name)
+      try {
+        if (name) window.localStorage.setItem('julian-contact-name', name)
+        else window.localStorage.removeItem('julian-contact-name')
+      } catch {}
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
   const [messages, setMessages] = useState(initialMessages)
   const [draft, setDraft] = useState('')
   const [isTyping, setIsTyping] = useState(interactive)
@@ -1387,12 +1504,16 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
     const name = contactDraft.trim()
     if (!name) return
     try { window.localStorage.setItem('julian-contact-name', name) } catch { /* Keep the contact saved for this view. */ }
+    if (cloudConfigured) saveCloudSettings({ julianContactName: name }).catch(() => {})
+    else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ julianContactName: name }) }).catch(() => {})
     setDisplayName(name)
     setIsContactSheetOpen(false)
   }
 
   function deleteContact() {
     try { window.localStorage.removeItem('julian-contact-name') } catch { /* The visible name still resets for this view. */ }
+    if (cloudConfigured) saveCloudSettings({ julianContactName: '' }).catch(() => {})
+    else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ julianContactName: '' }) }).catch(() => {})
     setDisplayName('')
     setContactDraft('')
     setIsContactSheetOpen(false)
