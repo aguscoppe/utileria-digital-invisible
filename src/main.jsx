@@ -9,6 +9,8 @@ import '@fontsource/inter/latin-700.css'
 import './styles.css'
 import './scene-groups.css'
 import './desktop.css'
+import './music.css'
+import './ios-install.css'
 import './mail.css'
 import './terminal.css'
 import './story.css'
@@ -18,6 +20,7 @@ import './ai-chat.css'
 import './asset-placeholders.css'
 import './upload-toast.css'
 import { cloudAssetSizes, cloudAssetUrl, cloudConfigured, copyCloudProfilePhoto, getCloudState, resetCloudAsset, saveCloudSettings, setCloudAssetManifest, uploadCloudAsset } from './cloud-sync.js'
+import { copyOfflineAsset, loadOfflineAssets, resetOfflineAsset, saveOfflineAsset } from './offline-assets.js'
 import './call.css'
 import './aspect-ratio-fixes.css'
 
@@ -223,11 +226,12 @@ function AssetUploadSection() {
   useEffect(() => () => window.clearTimeout(noticeTimer.current), [])
 
   useEffect(() => {
+    loadOfflineAssets().then(setFileSizes).catch(() => {})
     const status = cloudConfigured ? cloudAssetSizes() : fetch('/__asset-manager/status').then((response) => {
       if (!response.ok) throw new Error('El servidor de archivos no respondió')
       return response.json()
     })
-    status.then(setFileSizes).catch(() => showNotice('error', 'Carga de archivos no disponible', cloudConfigured ? 'No se pudo conectar con el almacenamiento en la nube.' : 'No se pudo conectar con el servidor del proyecto. Iniciá npm run dev y abrí la app desde esa dirección.'))
+    status.then((sizes) => setFileSizes((offlineSizes) => ({ ...sizes, ...offlineSizes }))).catch(() => {})
   }, [])
 
   function explainUploadError(error, asset) {
@@ -314,12 +318,23 @@ function AssetUploadSection() {
     setNotice(null)
     try {
       const uploadFileData = await prepareAssetFile(asset, file)
+      let offlineResult = null
+      try {
+        offlineResult = await saveOfflineAsset(asset.id, uploadFileData)
+        setFileSizes((current) => ({ ...current, [asset.id]: offlineResult.size }))
+      } catch { /* Continue with server storage when browser storage is unavailable. */ }
       let result
-      if (cloudConfigured) result = await uploadCloudAsset(asset.id, uploadFileData)
-      else {
-        const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', headers: { 'Content-Type': uploadFileData.type || 'application/octet-stream' }, body: uploadFileData })
-        if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
-        result = await response.json()
+      try {
+        if (cloudConfigured) result = await uploadCloudAsset(asset.id, uploadFileData)
+        else {
+          const response = await fetch(`/__asset-manager/upload/${asset.id}`, { method: 'POST', headers: { 'Content-Type': uploadFileData.type || 'application/octet-stream' }, body: uploadFileData })
+          if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
+          result = await response.json()
+        }
+      } catch (error) {
+        if (!offlineResult) throw error
+        showNotice('success', 'Guardado en este navegador', `${displayFilename(asset)} está disponible en la app. No se pudo sincronizar con la base o el servidor.`)
+        return
       }
       setFileSizes((current) => ({ ...current, [asset.id]: result.size }))
       showNotice('success', 'Archivo subido', `${displayFilename(asset)} se guardó correctamente.`)
@@ -334,12 +349,24 @@ function AssetUploadSection() {
     setUploading(asset.id)
     setNotice(null)
     try {
+      let offlineReset = false
+      try {
+        await resetOfflineAsset(asset.id)
+        offlineReset = true
+        setFileSizes((current) => ({ ...current, [asset.id]: 0 }))
+      } catch { /* Continue with server storage when browser storage is unavailable. */ }
       let result
-      if (cloudConfigured) result = await resetCloudAsset(asset.id, asset.original)
-      else {
-        const response = await fetch(`/__asset-manager/reset/${asset.id}`, { method: 'POST' })
-        if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
-        result = await response.json()
+      try {
+        if (cloudConfigured) result = await resetCloudAsset(asset.id, asset.original)
+        else {
+          const response = await fetch(`/__asset-manager/reset/${asset.id}`, { method: 'POST' })
+          if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
+          result = await response.json()
+        }
+      } catch (error) {
+        if (!offlineReset) throw error
+        showNotice('success', 'Restaurado en este navegador', `${displayFilename(asset)} usa ahora su archivo local. No se pudo sincronizar con la base o el servidor.`)
+        return
       }
       setFileSizes((current) => ({ ...current, [asset.id]: result.size || 0 }))
       showNotice('success', asset.original ? 'Imagen original restaurada' : 'Placeholder restaurado', `${displayFilename(asset)} ${asset.original ? 'volvió a su imagen original' : 'volvió a quedar vacío'}.`)
@@ -354,12 +381,23 @@ function AssetUploadSection() {
     setUploading(target.id)
     setNotice(null)
     try {
+      let offlineResult = null
+      try {
+        offlineResult = await copyOfflineAsset(target.id, source.id, cloudAssetUrl(`/assets/${source.filename}`))
+        setFileSizes((current) => ({ ...current, [target.id]: offlineResult.size }))
+      } catch { /* Continue with server storage when browser storage is unavailable. */ }
       let result
-      if (cloudConfigured) result = await copyCloudProfilePhoto(target.id, source.id)
-      else {
-        const response = await fetch(`/__asset-manager/copy-profile/${target.id}/${source.id}`, { method: 'POST' })
-        if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
-        result = await response.json()
+      try {
+        if (cloudConfigured) result = await copyCloudProfilePhoto(target.id, source.id)
+        else {
+          const response = await fetch(`/__asset-manager/copy-profile/${target.id}/${source.id}`, { method: 'POST' })
+          if (!response.ok) { const error = new Error(await response.text()); error.status = response.status; throw error }
+          result = await response.json()
+        }
+      } catch (error) {
+        if (!offlineResult) throw error
+        showNotice('success', 'Foto guardada en este navegador', `La foto también se usará en ${target.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'}. No se pudo sincronizar con la base o el servidor.`)
+        return
       }
       setFileSizes((current) => ({ ...current, [target.id]: result.size }))
       showNotice('success', 'Foto de perfil reutilizada', `La foto de ${source.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'} también se usará en ${target.id.endsWith('whatsapp') ? 'WhatsApp' : 'Instagram'}.`)
@@ -408,6 +446,7 @@ function AssetUploadSection() {
 
 function App() {
   const [path, setPath] = useState(window.location.pathname)
+  const [, setOfflineAssetRevision] = useState(0)
   const defaultProductionDate = '2026-10-31'
   const [productionDate, setProductionDate] = useState(() => {
     try { return window.localStorage.getItem('production-date') || defaultProductionDate } catch { return defaultProductionDate }
@@ -426,6 +465,9 @@ function App() {
   const [instagramBio, setInstagramBio] = useState(() => {
     try { return window.localStorage.getItem('instagram-bio') ?? defaultInstagramBio } catch { return defaultInstagramBio }
   })
+  const [musicTitle, setMusicTitle] = useState(() => { try { return window.localStorage.getItem('music-title') ?? 'Fade Into You' } catch { return 'Fade Into You' } })
+  const [musicArtist, setMusicArtist] = useState(() => { try { return window.localStorage.getItem('music-artist') ?? 'Mazzy Star' } catch { return 'Mazzy Star' } })
+  const [musicDuration, setMusicDuration] = useState(() => { try { return window.localStorage.getItem('music-duration') ?? '4:55' } catch { return '4:55' } })
   const [mailDurationSeconds, setMailDurationSeconds] = useState(() => {
     try {
       const saved = Number(window.localStorage.getItem('assistant-mail-duration-seconds'))
@@ -442,12 +484,22 @@ function App() {
   const [projectDatabaseReady, setProjectDatabaseReady] = useState(false)
 
   useEffect(() => {
+    const refreshOfflineAssets = () => setOfflineAssetRevision((revision) => revision + 1)
+    window.addEventListener('offline-assets-changed', refreshOfflineAssets)
+    loadOfflineAssets().catch(() => {})
+    return () => window.removeEventListener('offline-assets-changed', refreshOfflineAssets)
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
     const fallbackSettings = {
       productionDate,
       clockTime,
       julianPhone,
       instagramBio,
+      musicTitle,
+      musicArtist,
+      musicDuration,
       mailDurationSeconds: Number(mailDurationSeconds) || 7,
       mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8,
       julianContactName: (() => { try { return window.localStorage.getItem('julian-contact-name') || '' } catch { return '' } })(),
@@ -470,6 +522,9 @@ function App() {
       apply('clockTime', saved.clockTime ?? fallbackSettings.clockTime, setClockTime, 'production-clock-time')
       apply('julianPhone', saved.julianPhone ?? fallbackSettings.julianPhone, setJulianPhone, 'julian-phone')
       apply('instagramBio', saved.instagramBio ?? fallbackSettings.instagramBio, setInstagramBio, 'instagram-bio')
+      apply('musicTitle', saved.musicTitle ?? fallbackSettings.musicTitle, setMusicTitle, 'music-title')
+      apply('musicArtist', saved.musicArtist ?? fallbackSettings.musicArtist, setMusicArtist, 'music-artist')
+      apply('musicDuration', saved.musicDuration ?? fallbackSettings.musicDuration, setMusicDuration, 'music-duration')
       if (Object.prototype.hasOwnProperty.call(saved, 'mailDurationSeconds')) {
         const value = String(Math.min(60, Math.max(1, Number(saved.mailDurationSeconds) || 7)))
         setMailDurationSeconds(value)
@@ -497,13 +552,18 @@ function App() {
 
   useEffect(() => {
     if (!projectDatabaseReady) return undefined
-    const settings = { productionDate, clockTime, julianPhone, instagramBio, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8 }
+    const settings = { productionDate, clockTime, julianPhone, instagramBio, musicTitle, musicArtist, musicDuration, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8 }
     const timer = window.setTimeout(() => {
       if (cloudConfigured) saveCloudSettings(settings).catch(() => {})
       else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(() => {})
     }, 300)
     return () => window.clearTimeout(timer)
-  }, [projectDatabaseReady, productionDate, clockTime, julianPhone, instagramBio, mailDurationSeconds, mailNotificationDelaySeconds])
+  }, [projectDatabaseReady, productionDate, clockTime, julianPhone, instagramBio, musicTitle, musicArtist, musicDuration, mailDurationSeconds, mailNotificationDelaySeconds])
+
+  function updateMusicSetting(setter, key, value) {
+    setter(value)
+    try { window.localStorage.setItem(key, value) } catch {}
+  }
 
   function updateClockTime(value) {
     setClockTime(value)
@@ -571,7 +631,7 @@ function App() {
   const selected = scenes.find((scene) => scene.path === path)
   if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} />
   if (selected) {
-    if (selected.path === '/notebook/esc1a-p2') return <DesktopView onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} />
+    if (selected.path === '/notebook/esc1a-p2') return <DesktopView onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} musicTitle={musicTitle} musicArtist={musicArtist} musicDuration={musicDuration} />
     if (selected.path === '/notebook/esc1g-p2') return <MailDesktopScene onHome={() => navigate('/')} clockTime={clockTime} mailBadgeDelayMs={(Number(mailNotificationDelaySeconds) || 0) * 1000} />
     if (selected.path === '/notebook/esc3-p2') return <MailToAssistantScene onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} mailDurationMs={(Number(mailDurationSeconds) || 7) * 1000} clockTime={clockTime} />
     if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} avatarUrl={assets.julianInstagramAvatar} clockTime={clockTime} bio={instagramBio} />
@@ -587,6 +647,9 @@ function App() {
     return <ScenePlaceholder scene={selected} onHome={() => navigate('/')} />
   }
 
+  const isIOSDeviceForInstallHint = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isStandaloneForInstallHint = window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true
+
   return (
     <main className="shell">
       <header className="topbar">
@@ -595,6 +658,7 @@ function App() {
         </a>
         <span className="offline"><span /> LISTO PARA SET</span>
       </header>
+      {isIOSDeviceForInstallHint && !isStandaloneForInstallHint && <aside className="ios-install-hint"><strong>¿Querés abrirla sin la barra de Safari?</strong><span>En Safari, tocá Compartir → Añadir a pantalla de inicio y activá “Abrir como app”. Después abrila desde el nuevo ícono.</span></aside>}
 
       <section className="scene-section">
         <div className="section-heading">
@@ -626,15 +690,25 @@ function App() {
           <label><span>Bio de Instagram</span><input type="text" value={instagramBio} onChange={(event) => updateInstagramBio(event.target.value)} /></label>
         </div>
       </section>
+      <section className="project-text-tool" aria-label="Datos del reproductor de música">
+        <div><p className="eyebrow">REPRODUCTOR</p><h2>Información de la canción</h2></div>
+        <div className="project-text-tool-fields">
+          <label><span>Nombre de la canción</span><input type="text" value={musicTitle} onChange={(event) => updateMusicSetting(setMusicTitle, 'music-title', event.target.value)} /></label>
+          <label><span>Intérprete</span><input type="text" value={musicArtist} onChange={(event) => updateMusicSetting(setMusicArtist, 'music-artist', event.target.value)} /></label>
+          <label><span>Duración (m:ss)</span><input type="text" inputMode="numeric" placeholder="4:55" value={musicDuration} onChange={(event) => updateMusicSetting(setMusicDuration, 'music-duration', event.target.value)} /></label>
+        </div>
+      </section>
       <AssetUploadSection />
       <footer><span>INVISIBLE <i>·</i> UTILERÍA DIGITAL</span><span>HERRAMIENTAS DE RODAJE <b>01 / 01</b></span></footer>
     </main>
   )
 }
 
-function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssistant = false, autoOpenAssistantDelayMs = 5000, onOpenMail = null, showMailBadge = true, mailBadgeDelayMs = 1500, clockTime = '09:41' }) {
+function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssistant = false, autoOpenAssistantDelayMs = 5000, onOpenMail = null, showMailBadge = true, mailBadgeDelayMs = 1500, clockTime = '09:41', musicTitle = 'Fade Into You', musicArtist = 'Mazzy Star', musicDuration = '4:55' }) {
   const [wallpaperFailed, setWallpaperFailed] = useState(false)
   const [playing, setPlaying] = useState(true)
+  const [musicPosition, setMusicPosition] = useState(0)
+  const [isSeekingMusic, setIsSeekingMusic] = useState(false)
   const [selectedDesktopIcon, setSelectedDesktopIcon] = useState('')
   const [isMusicMinimized, setIsMusicMinimized] = useState(false)
   const [isMusicClosed, setIsMusicClosed] = useState(false)
@@ -647,6 +721,24 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
   const [isDraggingWidget, setIsDraggingWidget] = useState(false)
   const widgetDragRef = useRef(null)
   const assistantDragRef = useRef(null)
+  const musicDurationParts = /^\s*(\d+):([0-5]?\d)\s*$/.exec(musicDuration)
+  const musicDurationSeconds = musicDurationParts ? Number(musicDurationParts[1]) * 60 + Number(musicDurationParts[2]) : 0
+  const safeMusicDuration = Math.max(1, musicDurationSeconds)
+  const formatMusicTime = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
+  useEffect(() => {
+    if (!playing || isSeekingMusic) return undefined
+    const timer = window.setInterval(() => setMusicPosition((position) => Math.min(position + 1, safeMusicDuration)), 1000)
+    return () => window.clearInterval(timer)
+  }, [playing, isSeekingMusic, safeMusicDuration])
+
+  useEffect(() => {
+    setMusicPosition((position) => Math.min(position, safeMusicDuration))
+  }, [safeMusicDuration])
+
+  useEffect(() => {
+    if (musicPosition >= safeMusicDuration) setPlaying(false)
+  }, [musicPosition, safeMusicDuration])
 
   useEffect(() => {
     const onKeyDown = (event) => { if (event.key === 'Escape') { if (assistantWindowOpen) setAssistantWindowOpen(false); else onHome() } }
@@ -671,7 +763,7 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
 
   function startWidgetDrag(event) {
     if (isMusicZoomed) return
-    if (event.target.closest('button')) return
+    if (event.target.closest('button, input, .track-progress, .music-window-controls')) return
     const screen = event.currentTarget.closest('.desktop-screen')
     const screenRect = screen.getBoundingClientRect()
     const widgetRect = event.currentTarget.getBoundingClientRect()
@@ -741,10 +833,11 @@ function DesktopView({ onHome, wallpaperUrl = '', showMusic = true, autoOpenAssi
     <div className="desktop-icons"><button className={`desktop-icon${selectedDesktopIcon === 'Proyectos' ? ' selected' : ''}`} onClick={() => setSelectedDesktopIcon('Proyectos')} aria-label="Proyectos"><span><FolderOpen size={35} strokeWidth={1.4} /></span><small>Proyectos</small></button><button className={`desktop-icon${selectedDesktopIcon === 'Notas' ? ' selected' : ''}`} onClick={() => setSelectedDesktopIcon('Notas')} aria-label="Notas"><span><StickyNote size={34} strokeWidth={1.4} /></span><small>Notas</small></button><button className={`desktop-icon${selectedDesktopIcon === 'Música' ? ' selected' : ''}`} onClick={() => setSelectedDesktopIcon('Música')} onDoubleClick={openMusic} onKeyDown={(event) => { if (event.key === 'Enter') openMusic() }} aria-label="Música"><span><Music2 size={34} strokeWidth={1.5} /></span><small>Música</small></button></div>
     {showMusic && !isMusicClosed && !isMusicMinimized && <section className={`music-widget${isDraggingWidget ? ' is-dragging' : ''}${isMusicZoomed ? ' is-zoomed' : ''}`} aria-label="Reproductor de música" style={widgetPosition && !isMusicZoomed ? { left: `${widgetPosition.x}px`, top: `${widgetPosition.y}px`, right: 'auto' } : undefined} onPointerDown={startWidgetDrag} onPointerMove={moveWidget} onPointerUp={endWidgetDrag} onPointerCancel={endWidgetDrag}>
       <div className="music-window-controls"><button className="mac-window-control close" aria-label="Cerrar Música" title="Cerrar" onClick={() => { setIsMusicClosed(true); setIsMusicMinimized(false); setIsMusicZoomed(false) }}><X /></button><button className="mac-window-control minimize" aria-label="Minimizar Música" title="Minimizar" onClick={() => setIsMusicMinimized(true)}><Minus /></button><button className="mac-window-control zoom" aria-label={isMusicZoomed ? 'Restaurar ventana de Música' : 'Ampliar ventana de Música'} title={isMusicZoomed ? 'Restaurar' : 'Ampliar'} onClick={() => setIsMusicZoomed((value) => !value)}>{isMusicZoomed ? <Minimize2 /> : <Maximize2 />}</button></div>
-      <div className="music-art" aria-label="Carátula abstracta de álbum"><span className="album-sun"/><span className="album-horizon"/><span className="album-title">MAZZY STAR</span></div>
-      <div className="music-info"><span className="music-label">{playing ? 'REPRODUCIENDO' : 'EN PAUSA'}</span><strong>Fade Into You</strong><span>Mazzy Star</span>
-        <div className="track-progress"><i className={playing ? 'is-playing' : ''} /></div>
-        <div className="track-controls"><button aria-label="Anterior"><SkipBack /></button><button className="play-button" aria-label={playing ? 'Pausar' : 'Reproducir'} onClick={() => setPlaying(!playing)}>{playing ? <Pause /> : <Play />}</button><button aria-label="Siguiente"><SkipForward /></button></div>
+      <div className="music-art" aria-label="Carátula abstracta de álbum"><span className="album-sun"/><span className="album-horizon"/><span className="album-title">{musicArtist}</span></div>
+      <div className="music-info"><span className="music-label">{playing ? 'REPRODUCIENDO' : 'EN PAUSA'}</span><strong>{musicTitle}</strong><span>{musicArtist}</span>
+        <div className="track-progress"><input aria-label="Posición de la canción" type="range" min="0" max={safeMusicDuration} step="1" value={musicPosition} style={{ '--track-progress': `${(musicPosition / safeMusicDuration) * 100}%` }} onPointerDown={(event) => { event.stopPropagation(); setIsSeekingMusic(true) }} onPointerUp={(event) => { event.stopPropagation(); setIsSeekingMusic(false) }} onPointerCancel={(event) => { event.stopPropagation(); setIsSeekingMusic(false) }} onLostPointerCapture={() => setIsSeekingMusic(false)} onChange={(event) => setMusicPosition(Number(event.target.value))} /></div>
+        <div className="track-duration"><span>{formatMusicTime(musicPosition)}</span><span>{musicDurationSeconds ? formatMusicTime(safeMusicDuration) : musicDuration}</span></div>
+        <div className="track-controls"><button aria-label="Volver al inicio" title="Volver al inicio" onClick={() => setMusicPosition(0)}><SkipBack /></button><button className="play-button" aria-label={playing ? 'Pausar' : 'Reproducir'} onClick={() => { if (musicPosition >= safeMusicDuration) setMusicPosition(0); setPlaying((value) => !value) }}>{playing ? <Pause /> : <Play />}</button><button aria-label="Ir al final" title="Ir al final" onClick={() => { setMusicPosition(safeMusicDuration); setPlaying(false) }}><SkipForward /></button></div>
       </div>
       <span className="widget-menu">•••</span>
     </section>}

@@ -1,3 +1,5 @@
+import { isOfflineAssetReset, localAssetUrl } from './offline-assets.js'
+
 const apiUrl = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '')
 const apiKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '')
 const bucket = 'project-assets'
@@ -43,8 +45,11 @@ export function setCloudAssetManifest(assets) { cloudAssets = assets || {} }
 
 export function cloudAssetUrl(src) {
   if (!src || !src.startsWith('/assets/')) return src
+  const localUrl = localAssetUrl(src)
+  if (localUrl) return localUrl
   const filename = src.split('/').pop().split('?')[0]
   const id = assetIdByStem[filename.replace(/\.[^.]+$/, '')]
+  if (id && isOfflineAssetReset(id)) return src
   const record = id && cloudAssets[id]
   return record?.objectPath ? `${apiUrl}/storage/v1/object/public/${bucket}/${record.objectPath}?v=${encodeURIComponent(record.updatedAt || '')}` : src
 }

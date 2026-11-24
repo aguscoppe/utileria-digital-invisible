@@ -1,0 +1,3 @@
+.ios-install-hint{display:flex;flex-direction:column;gap:5px;margin:0 0 24px;padding:13px 15px;border:1px solid #c7d48155;border-left:3px solid #c7d481;background:#1c1e18;color:#e9eadf;font-size:12px;line-height:1.45}
+.ios-install-hint strong{font-size:12px;font-weight:600}
+.ios-install-hint span{color:#b7b8ab;font-size:11px}

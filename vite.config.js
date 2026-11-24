@@ -27,7 +27,7 @@ const maxAssetSize = 100 * 1024 * 1024
 const profileAssetIds = new Set(['julian-profile-instagram', 'julian-profile-whatsapp'])
 const imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'svg', 'heic', 'heif']
 const databasePath = 'data/project-database.json'
-const projectSettingKeys = new Set(['productionDate', 'clockTime', 'julianPhone', 'instagramBio', 'mailDurationSeconds', 'mailNotificationDelaySeconds', 'julianContactName'])
+const projectSettingKeys = new Set(['productionDate', 'clockTime', 'julianPhone', 'instagramBio', 'musicTitle', 'musicArtist', 'musicDuration', 'mailDurationSeconds', 'mailNotificationDelaySeconds', 'julianContactName'])
 
 function isValidAsset(id, buffer) {
   if (id === 'mail-video') {
