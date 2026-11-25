@@ -174,9 +174,9 @@ const promoEmails = [
 ]
 const managedFiles = [
   { id: 'julian-profile-instagram', group: 'celular', subgroup: 'Instagram', filename: 'julian_profile_instagram.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
-  { id: 'julian-post-profile', group: 'celular', subgroup: 'Instagram', filename: 'julian_profile_post.jpg', label: 'Publicación: foto de Julián', accept: 'image/*' },
-  { id: 'julian-post-dog', group: 'celular', subgroup: 'Instagram', filename: 'julian_dog_post.jpg', label: 'Publicación: perro de Julián', accept: 'image/*' },
-  { id: 'julian-post-eiffel', group: 'celular', subgroup: 'Instagram', filename: 'julian_eiffel_post.jpg', label: 'Publicación: Julián en París', accept: 'image/*' },
+  { id: 'julian-post-profile', group: 'celular', subgroup: 'Instagram', filename: 'julian_profile_post.jpg', label: 'Publicación de Julián 1', accept: 'image/*' },
+  { id: 'julian-post-dog', group: 'celular', subgroup: 'Instagram', filename: 'julian_dog_post.jpg', label: 'Publicación de Julián 2', accept: 'image/*' },
+  { id: 'julian-post-eiffel', group: 'celular', subgroup: 'Instagram', filename: 'julian_eiffel_post.jpg', label: 'Publicación de Julián 3', accept: 'image/*' },
   { id: 'julian-profile-whatsapp', group: 'celular', subgroup: 'WhatsApp', filename: 'julian_profile_whatsapp.jpg', label: 'Foto de perfil de Julián', accept: 'image/*' },
   { id: 'julian-mate-story', group: 'celular', subgroup: 'Instagram', filename: 'julian_mate_story.jpg', label: 'Historia de Julián 1', accept: 'image/*' },
   { id: 'party-halloween', group: 'celular', subgroup: 'Instagram', filename: 'party_halloween.jpg', label: 'Historia de Julián 2', accept: 'image/*' },
@@ -678,7 +678,11 @@ function App() {
     if (selected.path === '/mobile/esc1a-p1') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
     if (selected.path === '/mobile/esc1g-p11') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer />
     if (selected.path === '/mobile/esc1g-p12') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer dynamicReplay />
-    if (selected.path === '/mobile/esc1g-p10') return <IncomingCall onHome={() => navigate('/')} callerName="JULIÁN" callerSubtext="llamada de voz entrante" avatarUrl={assets.julianWhatsappAvatar} clockTime={clockTime} />
+    if (selected.path === '/mobile/esc1g-p10') {
+      let callerName = julianPhone
+      try { callerName = window.localStorage.getItem('julian-contact-name')?.trim() || julianPhone } catch {}
+      return <IncomingCall onHome={() => navigate('/')} callerName={callerName} callerSubtext="Llamada entrante" avatarUrl={assets.julianWhatsappAvatar} clockTime={clockTime} />
+    }
     return <ScenePlaceholder scene={selected} onHome={() => navigate('/')} />
   }
 
@@ -1176,7 +1180,7 @@ function formatWhatsAppChatText(text, sender) {
 function WhatsAppMessageBubble({ message, broken = false, onImageError, showTimestamp = true, previewable = false, onClick }) {
   const messageText = message.text || message.transcript
   return <article className={`chat-bubble${previewable ? ' is-previewable' : ''}`} onClick={onClick}>
-    {message.audioDuration && !messageText && <div className="chat-audio-note" aria-label={message.sender === 'me' ? 'Nota de voz enviada' : `Nota de voz, ${message.audioDuration}`}><span className="chat-audio-play">▶</span><span className="chat-audio-waveform">{Array.from({ length: 22 }, (_, index) => <i key={index} style={{ height: `${7 + ((index * 7) % 14)}px` }} />)}</span>{message.sender !== 'me' && <small>{message.audioDuration}</small>}</div>}
+    {message.audioDuration && !messageText && <div className="chat-audio-note" aria-label={message.sender === 'me' ? 'Nota de voz enviada' : `Nota de voz, ${message.audioDuration}`}><span className="chat-audio-play" aria-hidden="true"><Play /></span><span className="chat-audio-waveform">{Array.from({ length: 22 }, (_, index) => <i key={index} style={{ height: `${7 + ((index * 7) % 14)}px` }} />)}</span>{message.sender !== 'me' && <small>{message.audioDuration}</small>}</div>}
     {message.photoLabel && <div className="chat-image-fallback"><span>▧</span><small>{message.photoLabel}</small></div>}
     {message.image && (broken ? <div className="chat-image-fallback"><span>▧</span><small>{message.imageAlt || 'Imagen compartida'}</small></div> : <FlexibleAssetImage className="chat-image" src={message.image} alt={message.imageAlt || 'Imagen compartida'} onError={onImageError} />)}
     {messageText && <span className="chat-message-text">{formatWhatsAppChatText(messageText, message.sender)}</span>}
@@ -1404,7 +1408,7 @@ function InstagramProfile({ username, avatarUrl, posts = julianPosts, clockTime 
         <div className="instagram-profile-tabs"><span aria-label="Publicaciones"><Grid3X3 /></span><span aria-label="Videos"><Clapperboard /></span><span aria-label="Etiquetas"><UserRound /></span></div>
         <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}>{post.mediaUrl && <FlexibleAssetImage className="instagram-profile-grid-photo" src={post.mediaUrl} alt={post.caption} onError={(event) => { event.currentTarget.style.display = 'none' }} />}</button>)}</div>
       </div>
-      <div className="instagram-profile-bottom"><span aria-label="Inicio"><House /></span><span aria-label="Buscar"><Search /></span><button onClick={onOpenStories} aria-label="Perfil de Julián"><span>J{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</span></button></div>
+      <div className="instagram-profile-bottom"><span aria-label="Inicio"><House /></span><span aria-label="Buscar"><Search /></span><span aria-label="Reels"><Clapperboard /></span></div>
       <div className="instagram-profile-home-indicator" />
     </section>
   </main>
@@ -1566,9 +1570,13 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
     }
 
     if (message.id === 'full-personally-1') {
-      scheduleCheckpoint(950, () => setIsTyping(false))
-      scheduleCheckpoint(1550, () => setIsTyping(true))
-      scheduleCheckpoint(2800, deliverMessage)
+      scheduleCheckpoint(2200, () => setIsTyping(false))
+      scheduleCheckpoint(3800, () => setIsTyping(true))
+      scheduleCheckpoint(5800, () => setIsTyping(false))
+      scheduleCheckpoint(8000, () => setIsTyping(true))
+      scheduleCheckpoint(10600, () => setIsTyping(false))
+      scheduleCheckpoint(12000, () => setIsTyping(true))
+      scheduleCheckpoint(14500, deliverMessage)
     } else scheduleCheckpoint(1150, deliverMessage)
   }
 
