@@ -1,0 +1,7 @@
+.profile-settings-groups{display:grid;gap:22px}
+.profile-settings-group h3{margin:0 0 9px;color:#c5d27d;font-size:12px;font-weight:550;letter-spacing:.04em}
+.profile-settings-group .project-text-tool-fields{display:grid;width:100%;gap:0;border-top:1px solid #ffffff16}
+.profile-settings-group .project-text-tool-fields label{min-height:56px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;width:auto;padding:9px 12px;border-bottom:1px solid #ffffff12;background:#191a16;color:#e5e6db;font:11px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:0;text-transform:none}
+.profile-settings-group .project-text-tool-fields label:nth-child(even){background:#1d1e19}
+.profile-settings-group .project-text-tool-fields input{width:min(48vw,420px);max-width:none;min-height:35px;box-sizing:border-box;padding:7px 9px;border:1px solid #ffffff25;border-radius:3px;background:#11120f;color:#dce3bd;font:13px ui-sans-serif,system-ui,sans-serif;letter-spacing:0;text-transform:none}
+@media(max-width:700px){.profile-settings-group .project-text-tool-fields label{min-height:55px;gap:10px;padding:9px 8px;font-size:10px}.profile-settings-group .project-text-tool-fields input{width:min(54vw,270px)}}

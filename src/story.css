@@ -11,3 +11,4 @@
 .instagram-profile-avatar>span,.instagram-profile-bottom button span{position:relative}
 .instagram-profile-avatar img,.instagram-profile-bottom img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .instagram-profile-avatar img{z-index:1}
+.instagram-profile-name{display:block;margin:12px 0 0;font-size:11px;font-weight:650}.instagram-profile-bio{margin-top:3px}

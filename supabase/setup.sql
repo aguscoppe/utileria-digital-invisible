@@ -110,7 +110,7 @@ create policy "Anyone can upload managed project assets"
     bucket_id = 'project-assets' and
     (
       name = 'mail-video.mp4' or
-      name ~ '^(julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
+      name ~ '^(julian-mate-story|julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
     )
   );
 
@@ -122,7 +122,7 @@ create policy "Anyone can read managed project asset metadata"
     bucket_id = 'project-assets' and
     (
       name = 'mail-video.mp4' or
-      name ~ '^(julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
+      name ~ '^(julian-mate-story|julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
     )
   );
 
@@ -134,14 +134,14 @@ create policy "Anyone can update managed project assets"
     bucket_id = 'project-assets' and
     (
       name = 'mail-video.mp4' or
-      name ~ '^(julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
+      name ~ '^(julian-mate-story|julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
     )
   )
   with check (
     bucket_id = 'project-assets' and
     (
       name = 'mail-video.mp4' or
-      name ~ '^(julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
+      name ~ '^(julian-mate-story|julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
     )
   );
 
@@ -153,6 +153,6 @@ create policy "Anyone can delete managed project assets"
     bucket_id = 'project-assets' and
     (
       name = 'mail-video.mp4' or
-      name ~ '^(julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
+      name ~ '^(julian-mate-story|julian-profile-instagram|julian-profile-whatsapp|julian-post-profile|julian-post-dog|julian-post-eiffel|party-halloween|agustina-julian-party|martina-wallpaper-desktop|martina-wallpaper-mobile|martina-mirror-selfie|crown-photo|emily-costume)[.](jpg|jpeg|png|webp|avif|gif|bmp|heic|heif)$'
     )
   );

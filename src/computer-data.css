@@ -1,0 +1,9 @@
+.computer-data-groups{display:grid;gap:22px}
+.computer-data-group>h3{margin:0 0 9px;color:#c5d27d;font-size:12px;font-weight:550;letter-spacing:.04em}
+.computer-data-group>p{margin:0 0 12px;color:#aaa99f;font-size:11px;line-height:1.5}
+.computer-data-group .project-text-tool-fields{display:grid;width:100%;gap:0;border-top:1px solid #ffffff16}
+.computer-data-group .project-text-tool-fields label{min-height:56px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;width:auto;padding:9px 12px;border-bottom:1px solid #ffffff12;background:#191a16;color:#e5e6db;font:11px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:0;text-transform:none}
+.computer-data-group .project-text-tool-fields label:nth-child(even){background:#1d1e19}
+.computer-data-group .project-text-tool-fields input{width:min(48vw,420px);max-width:none;min-height:35px;box-sizing:border-box;padding:7px 9px;border:1px solid #ffffff25;border-radius:3px;background:#11120f;color:#dce3bd;font:13px ui-sans-serif,system-ui,sans-serif;letter-spacing:0;text-transform:none}
+.computer-data-group .project-text-tool-fields label:last-child input{width:130px}
+@media(max-width:700px){.computer-data-group .clock-tool-fields label{min-height:55px;gap:10px;padding:9px 8px;font-size:10px}.computer-data-group .clock-tool-fields input{width:112px}.computer-data-group .project-text-tool-fields label{min-height:55px;gap:10px;padding:9px 8px;font-size:10px}.computer-data-group .project-text-tool-fields input{width:min(54vw,270px)}.computer-data-group .project-text-tool-fields label:last-child input{width:min(54vw,270px)}}

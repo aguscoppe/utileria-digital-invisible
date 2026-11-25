@@ -7,6 +7,8 @@ import '@fontsource/inter/latin-500.css'
 import '@fontsource/inter/latin-600.css'
 import '@fontsource/inter/latin-700.css'
 import './styles.css'
+import './profile-settings.css'
+import './computer-data.css'
 import './scene-groups.css'
 import './desktop.css'
 import './music.css'
@@ -30,7 +32,7 @@ const scenes = [
     { path: '/notebook/esc1a-p2', device: 'Notebook', code: 'ESC 1.A', shot: 'Plano 2', title: 'Escritorio & reproductor', phase: 'Computadora' },
   { path: '/notebook/esc1g-p2', device: 'Notebook', code: 'ESC 1.G', shot: 'Plano 2', title: 'Email con video adjunto', phase: 'Computadora' },
   { path: '/notebook/esc3-p2', device: 'Notebook', code: 'ESC 3', shot: 'Plano 2', title: 'Terminal incógnita', phase: 'Computadora' },
-  { path: '/mobile/esc1b-p3', device: 'Celular', code: 'ESC 1.B', shot: 'Plano 3', title: 'Bristagram Stories', phase: 'Celular' },
+  { path: '/mobile/esc1b-p3', device: 'Celular', code: 'ESC 1.B', shot: 'Plano 3', title: 'Instagram de Julián', phase: 'Celular' },
   { path: '/mobile/esc1c-p5', device: 'Celular', code: 'ESC 1.C', shot: 'Plano 5', title: 'Notificaciones de WhatsApp', phase: 'Celular' },
   { path: '/mobile/esc1g-p10', device: 'Celular', code: 'ESC 1.G', shot: 'Plano 10', title: 'Llamada entrante', phase: 'Celular' },
   { path: '/mobile/esc1g-p11', device: 'Celular', code: 'ESC 1.G', shot: 'Plano 11', title: 'Chat completo con Julián', phase: 'Celular' },
@@ -463,11 +465,17 @@ function App() {
     try { return window.localStorage.getItem('julian-phone') ?? '+54 9 11 1103-1976' } catch { return '+54 9 11 1103-1976' }
   })
   const defaultInstagramBio = 'Música, cine y alguna foto de madrugada.'
+  const [instagramDisplayName, setInstagramDisplayName] = useState(() => { try { return window.localStorage.getItem('instagram-display-name') ?? 'Julián' } catch { return 'Julián' } })
+  const [instagramUsername, setInstagramUsername] = useState(() => { try { return window.localStorage.getItem('instagram-username') ?? 'julian.v' } catch { return 'julian.v' } })
   const [instagramBio, setInstagramBio] = useState(() => {
     try { return window.localStorage.getItem('instagram-bio') ?? defaultInstagramBio } catch { return defaultInstagramBio }
   })
   const [instagramFollowers, setInstagramFollowers] = useState(() => { try { return String(Math.max(0, Math.floor(Number(window.localStorage.getItem('instagram-followers') ?? 246) || 0))) } catch { return '246' } })
   const [instagramFollowing, setInstagramFollowing] = useState(() => { try { return String(Math.max(0, Math.floor(Number(window.localStorage.getItem('instagram-following') ?? 318) || 0))) } catch { return '318' } })
+  const [mateStoryCaption, setMateStoryCaption] = useState(() => { try { return window.localStorage.getItem('mate-story-caption') ?? 'un mate antes de salir 🧉' } catch { return 'un mate antes de salir 🧉' } })
+  const [halloweenStoryCaption, setHalloweenStoryCaption] = useState(() => { try { return window.localStorage.getItem('halloween-story-caption') ?? 'noche de halloween 🎃' } catch { return 'noche de halloween 🎃' } })
+  const [friendsStoryCaption, setFriendsStoryCaption] = useState(() => { try { return window.localStorage.getItem('friends-story-caption') ?? '🖤' } catch { return '🖤' } })
+  const [instagramStoryHighlightText, setInstagramStoryHighlightText] = useState(() => { try { return window.localStorage.getItem('instagram-story-highlight-text') ?? 'Historia' } catch { return 'Historia' } })
   const [musicTitle, setMusicTitle] = useState(() => { try { return window.localStorage.getItem('music-title') ?? 'Fade Into You' } catch { return 'Fade Into You' } })
   const [musicArtist, setMusicArtist] = useState(() => { try { return window.localStorage.getItem('music-artist') ?? 'Mazzy Star' } catch { return 'Mazzy Star' } })
   const [musicDuration, setMusicDuration] = useState(() => { try { return window.localStorage.getItem('music-duration') ?? '4:55' } catch { return '4:55' } })
@@ -506,9 +514,15 @@ function App() {
       productionDate,
       clockTime,
       julianPhone,
+      instagramDisplayName,
+      instagramUsername,
       instagramBio,
       instagramFollowers: Number(instagramFollowers) || 0,
       instagramFollowing: Number(instagramFollowing) || 0,
+      mateStoryCaption,
+      halloweenStoryCaption,
+      friendsStoryCaption,
+      instagramStoryHighlightText,
       musicTitle,
       musicArtist,
       musicDuration,
@@ -534,9 +548,15 @@ function App() {
       apply('productionDate', saved.productionDate ?? fallbackSettings.productionDate, setProductionDate, 'production-date')
       apply('clockTime', saved.clockTime ?? fallbackSettings.clockTime, setClockTime, 'production-clock-time')
       apply('julianPhone', saved.julianPhone ?? fallbackSettings.julianPhone, setJulianPhone, 'julian-phone')
+      apply('instagramDisplayName', saved.instagramDisplayName ?? fallbackSettings.instagramDisplayName, setInstagramDisplayName, 'instagram-display-name')
+      apply('instagramUsername', saved.instagramUsername ?? fallbackSettings.instagramUsername, setInstagramUsername, 'instagram-username')
       apply('instagramBio', saved.instagramBio ?? fallbackSettings.instagramBio, setInstagramBio, 'instagram-bio')
       apply('instagramFollowers', saved.instagramFollowers ?? fallbackSettings.instagramFollowers, setInstagramFollowers, 'instagram-followers')
       apply('instagramFollowing', saved.instagramFollowing ?? fallbackSettings.instagramFollowing, setInstagramFollowing, 'instagram-following')
+      apply('mateStoryCaption', saved.mateStoryCaption ?? fallbackSettings.mateStoryCaption, setMateStoryCaption, 'mate-story-caption')
+      apply('halloweenStoryCaption', saved.halloweenStoryCaption ?? fallbackSettings.halloweenStoryCaption, setHalloweenStoryCaption, 'halloween-story-caption')
+      apply('friendsStoryCaption', saved.friendsStoryCaption ?? fallbackSettings.friendsStoryCaption, setFriendsStoryCaption, 'friends-story-caption')
+      apply('instagramStoryHighlightText', saved.instagramStoryHighlightText ?? fallbackSettings.instagramStoryHighlightText, setInstagramStoryHighlightText, 'instagram-story-highlight-text')
       apply('musicTitle', saved.musicTitle ?? fallbackSettings.musicTitle, setMusicTitle, 'music-title')
       apply('musicArtist', saved.musicArtist ?? fallbackSettings.musicArtist, setMusicArtist, 'music-artist')
       apply('musicDuration', saved.musicDuration ?? fallbackSettings.musicDuration, setMusicDuration, 'music-duration')
@@ -572,15 +592,15 @@ function App() {
 
   useEffect(() => {
     if (!projectDatabaseReady) return undefined
-    const settings = { productionDate, clockTime, julianPhone, instagramBio, instagramFollowers: Number(instagramFollowers) || 0, instagramFollowing: Number(instagramFollowing) || 0, musicTitle, musicArtist, musicDuration, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8, attachmentLoadingSeconds: Number.isFinite(Number(attachmentLoadingSeconds)) ? Number(attachmentLoadingSeconds) : 1.6 }
+    const settings = { productionDate, clockTime, julianPhone, instagramDisplayName, instagramUsername, instagramBio, instagramFollowers: Number(instagramFollowers) || 0, instagramFollowing: Number(instagramFollowing) || 0, mateStoryCaption, halloweenStoryCaption, friendsStoryCaption, instagramStoryHighlightText, musicTitle, musicArtist, musicDuration, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8, attachmentLoadingSeconds: Number.isFinite(Number(attachmentLoadingSeconds)) ? Number(attachmentLoadingSeconds) : 1.6 }
     const timer = window.setTimeout(() => {
       if (cloudConfigured) saveCloudSettings(settings).catch(() => {})
       else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(() => {})
     }, 300)
     return () => window.clearTimeout(timer)
-  }, [projectDatabaseReady, productionDate, clockTime, julianPhone, instagramBio, instagramFollowers, instagramFollowing, musicTitle, musicArtist, musicDuration, mailDurationSeconds, mailNotificationDelaySeconds, attachmentLoadingSeconds])
+  }, [projectDatabaseReady, productionDate, clockTime, julianPhone, instagramDisplayName, instagramUsername, instagramBio, instagramFollowers, instagramFollowing, mateStoryCaption, halloweenStoryCaption, friendsStoryCaption, instagramStoryHighlightText, musicTitle, musicArtist, musicDuration, mailDurationSeconds, mailNotificationDelaySeconds, attachmentLoadingSeconds])
 
-  function updateMusicSetting(setter, key, value) {
+  function updateStoredTextSetting(setter, key, value) {
     setter(value)
     try { window.localStorage.setItem(key, value) } catch {}
   }
@@ -603,6 +623,11 @@ function App() {
   function updateInstagramBio(value) {
     setInstagramBio(value)
     try { window.localStorage.setItem('instagram-bio', value) } catch {}
+  }
+
+  function updateInstagramProfileText(setter, key, value) {
+    setter(value)
+    try { window.localStorage.setItem(key, value) } catch {}
   }
 
   function updateInstagramCount(setter, key, value) {
@@ -662,6 +687,8 @@ function App() {
     window.scrollTo(0, 0)
   }
 
+  const storyCaptionById = { mate: mateStoryCaption, halloween: halloweenStoryCaption, friends: friendsStoryCaption }
+  const instagramStories = storyData.map((story) => ({ ...story, caption: storyCaptionById[story.id] ?? story.caption }))
   if (path === '/mobile/esc3-p2') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
   const selected = scenes.find((scene) => scene.path === path)
   if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} />
@@ -669,7 +696,7 @@ function App() {
     if (selected.path === '/notebook/esc1a-p2') return <DesktopView onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} musicTitle={musicTitle} musicArtist={musicArtist} musicDuration={musicDuration} />
     if (selected.path === '/notebook/esc1g-p2') return <MailDesktopScene onHome={() => navigate('/')} clockTime={clockTime} mailBadgeDelayMs={(Number(mailNotificationDelaySeconds) || 0) * 1000} attachmentLoadingMs={(Number(attachmentLoadingSeconds) || 0) * 1000} />
     if (selected.path === '/notebook/esc3-p2') return <MailToAssistantScene onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} mailDurationMs={(Number(mailDurationSeconds) || 7) * 1000} attachmentLoadingMs={(Number(attachmentLoadingSeconds) || 0) * 1000} clockTime={clockTime} />
-    if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} avatarUrl={assets.julianInstagramAvatar} clockTime={clockTime} bio={instagramBio} followers={instagramFollowers} following={instagramFollowing} />
+    if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} username={instagramUsername} displayName={instagramDisplayName} avatarUrl={assets.julianInstagramAvatar} stories={instagramStories} highlightText={instagramStoryHighlightText} clockTime={clockTime} bio={instagramBio} followers={instagramFollowers} following={instagramFollowing} />
     if (selected.path === '/mobile/esc1c-p1') return <LockScreen onHome={() => navigate('/')} wallpaperUrl={assets.mobileWallpaper} clockTime={clockTime} productionDate={productionDate} />
     if (selected.path === '/mobile/esc1c-p5') return <LockScreen onHome={() => navigate('/')} clockTime={clockTime} productionDate={productionDate} notificationDelayMs={5000} notificationStaggerMs={900} notifications={[
       { id: 'unknown-1', title: julianPhone, message: 'Hola, estas?', time: 'ahora', kind: 'whatsapp' },
@@ -722,25 +749,47 @@ function App() {
         <div className="clock-tool-heading"><p className="eyebrow">CONFIGURACIÓN</p><h2>Fecha y hora de las pantallas</h2><p>Se aplican a los relojes y la fecha del celular. Las marcas dentro de los mensajes no cambian.</p></div>
         <div className="clock-tool-fields"><label><span>Fecha</span><input type="date" value={productionDate} onChange={(event) => updateProductionDate(event.target.value)} /></label><label><span>Hora</span><input type="time" value={clockTime} onChange={(event) => updateClockTime(event.target.value)} /></label></div>
       </section>
-      <section className="clock-tool mail-timing-tool" aria-label="Duración de escenas de correo y video">
-        <div className="clock-tool-heading"><p className="eyebrow">ESCENAS DE CORREO</p><h2>Tiempos de correo y video</h2><p>Ajustá cuánto tarda en aparecer el aviso del correo, cuánto queda abierto antes de pasar a la IA y cuánto dura el mensaje «Cargando video adjunto…».</p></div>
-        <div className="clock-tool-fields"><label><span>Segundos antes de mostrar la IA</span><input type="number" min="1" max="60" step="1" value={mailDurationSeconds} onChange={(event) => updateMailDurationSeconds(event.target.value)} /></label><label><span>Demora de notificación del correo (segundos)</span><input type="number" min="0" max="60" step="0.1" value={mailNotificationDelaySeconds} onChange={(event) => updateMailNotificationDelaySeconds(event.target.value)} /></label><label><span>Carga del video adjunto (segundos)</span><input type="number" min="0" max="60" step="0.1" value={attachmentLoadingSeconds} onChange={(event) => updateAttachmentLoadingSeconds(event.target.value)} /></label></div>
-      </section>
-      <section className="project-text-tool" aria-label="Datos de Julián">
-        <div><p className="eyebrow">PERFILES</p><h2>Datos de Julián</h2></div>
-        <div className="project-text-tool-fields">
-          <label><span>Número de WhatsApp</span><input type="text" value={julianPhone} onChange={(event) => updateJulianPhone(event.target.value)} /></label>
-          <label><span>Bio de Instagram</span><input type="text" value={instagramBio} onChange={(event) => updateInstagramBio(event.target.value)} /></label>
-          <label><span>Seguidores de Brinstagram</span><input type="number" min="0" step="1" value={instagramFollowers} onChange={(event) => updateInstagramCount(setInstagramFollowers, 'instagram-followers', event.target.value)} /></label>
-          <label><span>Usuarios que sigue en Brinstagram</span><input type="number" min="0" step="1" value={instagramFollowing} onChange={(event) => updateInstagramCount(setInstagramFollowing, 'instagram-following', event.target.value)} /></label>
+      <section className="project-text-tool computer-data-tool" aria-label="Datos de la computadora">
+        <div><p className="eyebrow">COMPUTADORA</p><h2>Datos de la computadora</h2></div>
+        <div className="computer-data-groups">
+          <section className="computer-data-group" aria-label="Tiempos de correo y video">
+            <h3>Tiempos de correo y video</h3>
+            <p>Ajustá cuánto tarda en aparecer el aviso del correo, cuánto queda abierto antes de pasar a la IA y cuánto dura el mensaje «Cargando video adjunto…».</p>
+            <div className="clock-tool-fields"><label><span>Segundos antes de mostrar la IA</span><input type="number" min="1" max="60" step="1" value={mailDurationSeconds} onChange={(event) => updateMailDurationSeconds(event.target.value)} /></label><label><span>Demora de notificación del correo (segundos)</span><input type="number" min="0" max="60" step="0.1" value={mailNotificationDelaySeconds} onChange={(event) => updateMailNotificationDelaySeconds(event.target.value)} /></label><label><span>Carga del video adjunto (segundos)</span><input type="number" min="0" max="60" step="0.1" value={attachmentLoadingSeconds} onChange={(event) => updateAttachmentLoadingSeconds(event.target.value)} /></label></div>
+          </section>
+          <section className="computer-data-group" aria-label="Información de la canción">
+            <h3>Reproductor de música</h3>
+            <div className="project-text-tool-fields">
+              <label><span>Nombre de la canción</span><input type="text" value={musicTitle} onChange={(event) => updateStoredTextSetting(setMusicTitle, 'music-title', event.target.value)} /></label>
+              <label><span>Intérprete</span><input type="text" value={musicArtist} onChange={(event) => updateStoredTextSetting(setMusicArtist, 'music-artist', event.target.value)} /></label>
+              <label><span>Duración (m:ss)</span><input type="text" inputMode="numeric" placeholder="4:55" value={musicDuration} onChange={(event) => updateStoredTextSetting(setMusicDuration, 'music-duration', event.target.value)} /></label>
+            </div>
+          </section>
         </div>
       </section>
-      <section className="project-text-tool" aria-label="Datos del reproductor de música">
-        <div><p className="eyebrow">REPRODUCTOR</p><h2>Información de la canción</h2></div>
-        <div className="project-text-tool-fields">
-          <label><span>Nombre de la canción</span><input type="text" value={musicTitle} onChange={(event) => updateMusicSetting(setMusicTitle, 'music-title', event.target.value)} /></label>
-          <label><span>Intérprete</span><input type="text" value={musicArtist} onChange={(event) => updateMusicSetting(setMusicArtist, 'music-artist', event.target.value)} /></label>
-          <label><span>Duración (m:ss)</span><input type="text" inputMode="numeric" placeholder="4:55" value={musicDuration} onChange={(event) => updateMusicSetting(setMusicDuration, 'music-duration', event.target.value)} /></label>
+      <section className="project-text-tool" aria-label="Datos de Julián">
+        <div><p className="eyebrow">CELULAR</p><h2>Datos de Julián</h2></div>
+        <div className="profile-settings-groups">
+          <div className="profile-settings-group">
+            <h3>Instagram</h3>
+            <div className="project-text-tool-fields">
+              <label><span>Nombre</span><input type="text" value={instagramDisplayName} onChange={(event) => updateInstagramProfileText(setInstagramDisplayName, 'instagram-display-name', event.target.value)} /></label>
+              <label><span>Usuario</span><input type="text" value={instagramUsername} placeholder="julian.v" onChange={(event) => updateInstagramProfileText(setInstagramUsername, 'instagram-username', event.target.value)} /></label>
+              <label><span>Biografía</span><input type="text" value={instagramBio} onChange={(event) => updateInstagramBio(event.target.value)} /></label>
+              <label><span>Seguidores</span><input type="number" min="0" step="1" value={instagramFollowers} onChange={(event) => updateInstagramCount(setInstagramFollowers, 'instagram-followers', event.target.value)} /></label>
+              <label><span>Usuarios que sigue</span><input type="number" min="0" step="1" value={instagramFollowing} onChange={(event) => updateInstagramCount(setInstagramFollowing, 'instagram-following', event.target.value)} /></label>
+              <label><span>Historia 1 · texto opcional</span><input type="text" value={mateStoryCaption} placeholder="Vacío para ocultar" onChange={(event) => updateStoredTextSetting(setMateStoryCaption, 'mate-story-caption', event.target.value)} /></label>
+              <label><span>Historia 2 · texto opcional</span><input type="text" value={halloweenStoryCaption} placeholder="Vacío para ocultar" onChange={(event) => updateStoredTextSetting(setHalloweenStoryCaption, 'halloween-story-caption', event.target.value)} /></label>
+              <label><span>Historia 3 · texto opcional</span><input type="text" value={friendsStoryCaption} placeholder="Vacío para ocultar" onChange={(event) => updateStoredTextSetting(setFriendsStoryCaption, 'friends-story-caption', event.target.value)} /></label>
+              <label><span>Nombre de la destacada · opcional</span><input type="text" value={instagramStoryHighlightText} placeholder="Vacío para ocultar" onChange={(event) => updateStoredTextSetting(setInstagramStoryHighlightText, 'instagram-story-highlight-text', event.target.value)} /></label>
+            </div>
+          </div>
+          <div className="profile-settings-group">
+            <h3>WhatsApp</h3>
+            <div className="project-text-tool-fields">
+              <label><span>Número</span><input type="text" value={julianPhone} onChange={(event) => updateJulianPhone(event.target.value)} /></label>
+            </div>
+          </div>
         </div>
       </section>
       <AssetUploadSection />
@@ -1246,11 +1295,11 @@ function ChatAvatar({ contactAvatar }) {
   if (!contactAvatar || imageFailed) return <div className="chat-avatar"><span>J</span></div>
   return <>
     <button type="button" className="chat-avatar chat-avatar-button" onClick={() => setIsOpen(true)} aria-label="Ver foto de perfil de Julián"><FlexibleAssetImage src={contactAvatar} alt="" onError={() => setImageFailed(true)} /></button>
-    {isOpen && <div className="chat-avatar-lightbox" role="dialog" aria-modal="true" aria-label="Foto de perfil de Julián" onClick={() => setIsOpen(false)}><button type="button" aria-label="Cerrar foto" onClick={() => setIsOpen(false)}>×</button><FlexibleAssetImage src={contactAvatar} alt="Foto de perfil de Julián" onClick={(event) => event.stopPropagation()} />}</div>}
+    {isOpen && <div className="chat-avatar-lightbox" role="dialog" aria-modal="true" aria-label="Foto de perfil de Julián" onClick={() => setIsOpen(false)}><button type="button" aria-label="Cerrar foto" onClick={() => setIsOpen(false)}>×</button><FlexibleAssetImage src={contactAvatar} alt="Foto de perfil de Julián" onClick={(event) => event.stopPropagation()} /></div>}
   </>
 }
 
-function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories = storyData, durationPerStory = 15, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318 }) {
+function InstagramStory({ onHome, username = 'julian.v', displayName = 'Julián', avatarUrl = '', stories = storyData, durationPerStory = 15, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, highlightText = 'Historia' }) {
   const [storyIndex, setStoryIndex] = useState(0)
   const [isStoryOpen, setIsStoryOpen] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -1374,7 +1423,7 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
     storyPointerUp(event, true)
   }
 
-  if (!isStoryOpen) return <InstagramProfile username={username} avatarUrl={avatarUrl} clockTime={clockTime} bio={bio} followers={followers} following={following} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
+  if (!isStoryOpen) return <InstagramProfile username={username} displayName={displayName} avatarUrl={avatarUrl} clockTime={clockTime} bio={bio} followers={followers} following={following} highlightText={highlightText} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
   if (!story) return null
   const isZoomed = zoomScale > 1.02
   const storyImageUrl = brokenImages[story.id] ? '' : story.mediaUrl
@@ -1386,7 +1435,7 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
         <div className="story-progress-bars">{stories.map((item, index) => <div className="story-progress-track" key={item.id}><i style={{ width: `${index < storyIndex ? 100 : index === storyIndex ? progress * 100 : 0}%` }} /></div>)}</div>
         <div className="story-account"><div className="story-avatar"><span>J</span>{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</div><strong>{username}</strong><span>1 h</span><button className="story-menu" aria-label="Más opciones">•••</button></div>
         <div className="story-hit-zones"><button aria-label="Historia anterior" onClick={(event) => { if (event.detail === 0) changeStory(-1) }} /><button aria-label="Siguiente historia" onClick={(event) => { if (event.detail === 0) changeStory(1) }} /></div>
-        <div className="story-caption">{story.caption}</div>
+        {story.caption && <div className="story-caption">{story.caption}</div>}
         <div className="story-reply"><span>Enviar mensaje</span><button aria-label="Me gusta">♡</button><button aria-label="Compartir">➤</button></div>
       </div>
       <div className="story-notch" />
@@ -1394,17 +1443,18 @@ function InstagramStory({ onHome, username = 'julian.v', avatarUrl = '', stories
   </main>
 }
 
-function InstagramProfile({ username, avatarUrl, posts = julianPosts, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, onOpenStories, onHome }) {
+function InstagramProfile({ username, displayName = 'Julián', avatarUrl, posts = julianPosts, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, highlightText = 'Historia', onOpenStories, onHome }) {
   const [isFollowing, setIsFollowing] = useState(true)
   return <main className="story-screen">
     <section className="instagram-profile-frame">
       <div className="instagram-profile-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
       <header className="instagram-profile-toolbar"><button onClick={onHome} aria-label="Volver"><ArrowLeft /></button><strong>{username}</strong><button aria-label="Opciones"><Menu /></button></header>
       <div className="instagram-profile-content">
-        <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>J{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</span></button><div className="instagram-profile-stats"><strong>Julián</strong><div><span><b>{posts.length}</b> publicaciones</span><span><b>{followers}</b> seguidores</span><span><b>{following}</b> seguidos</span></div></div></div>
+        <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>J{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</span></button><div className="instagram-profile-stats"><div><span><b>{posts.length}</b> publicaciones</span><span><b>{followers}</b> seguidores</span><span><b>{following}</b> seguidos</span></div></div></div>
+        <strong className="instagram-profile-name">{displayName}</strong>
         <p className="instagram-profile-bio">{bio}</p>
         <div className="instagram-profile-actions"><button type="button" className={isFollowing ? 'is-following' : 'is-not-following'} aria-pressed={isFollowing} onClick={() => setIsFollowing((following) => !following)}>{isFollowing ? 'Siguiendo' : 'Seguir'}</button><button>Mensaje</button><button aria-label="Compartir perfil"><Share2 /></button></div>
-        <button className="instagram-story-highlight" onClick={onOpenStories} aria-label="Abrir historias de Julián"><span aria-hidden="true" /><small>Historia</small></button>
+        <button className="instagram-story-highlight" onClick={onOpenStories} aria-label={highlightText ? `Abrir historia destacada: ${highlightText}` : 'Abrir historias destacadas'}><span aria-hidden="true" />{highlightText && <small>{highlightText}</small>}</button>
         <div className="instagram-profile-tabs"><span aria-label="Publicaciones"><Grid3X3 /></span><span aria-label="Videos"><Clapperboard /></span><span aria-label="Etiquetas"><UserRound /></span></div>
         <div className="instagram-profile-grid">{posts.map((post) => <button key={post.id} aria-label={post.caption}>{post.mediaUrl && <FlexibleAssetImage className="instagram-profile-grid-photo" src={post.mediaUrl} alt={post.caption} onError={(event) => { event.currentTarget.style.display = 'none' }} />}</button>)}</div>
       </div>
