@@ -1,0 +1,4 @@
+.clock-tool .phone-status-toggle{display:flex;align-items:center;gap:9px;margin-top:12px;color:#a5a69a;font:11px Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:0;text-transform:none;cursor:pointer}
+.clock-tool .phone-status-toggle input{width:15px;height:15px;margin:0;padding:0;accent-color:#c5d27d;cursor:pointer}
+.chat-phone.status-bar-hidden .chat-header,.chat-preview-window.status-bar-hidden .chat-header{top:0}
+.chat-phone.status-bar-hidden .chat-messages-area,.chat-preview-window.status-bar-hidden .chat-preview-messages{inset:51px 0 48px}

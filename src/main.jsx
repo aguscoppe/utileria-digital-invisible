@@ -9,6 +9,7 @@ import '@fontsource/inter/latin-700.css'
 import './styles.css'
 import './profile-settings.css'
 import './computer-data.css'
+import './phone-status.css'
 import './scene-groups.css'
 import './desktop.css'
 import './music.css'
@@ -461,6 +462,12 @@ function App() {
     } catch {}
     return '01:32'
   })
+  const [showPhoneStatusBar, setShowPhoneStatusBar] = useState(() => {
+    try { return window.localStorage.getItem('show-phone-status-bar') ?? 'false' } catch { return 'false' }
+  })
+  const [phoneStatusBarConfigured, setPhoneStatusBarConfigured] = useState(() => {
+    try { return window.localStorage.getItem('phone-status-bar-configured') ?? 'false' } catch { return 'false' }
+  })
   const [julianPhone, setJulianPhone] = useState(() => {
     try { return window.localStorage.getItem('julian-phone') ?? '+54 9 11 1103-1976' } catch { return '+54 9 11 1103-1976' }
   })
@@ -513,6 +520,8 @@ function App() {
     const fallbackSettings = {
       productionDate,
       clockTime,
+      showPhoneStatusBar,
+      phoneStatusBarConfigured,
       julianPhone,
       instagramDisplayName,
       instagramUsername,
@@ -547,6 +556,19 @@ function App() {
       }
       apply('productionDate', saved.productionDate ?? fallbackSettings.productionDate, setProductionDate, 'production-date')
       apply('clockTime', saved.clockTime ?? fallbackSettings.clockTime, setClockTime, 'production-clock-time')
+      if (saved.phoneStatusBarConfigured === 'true') {
+        apply('showPhoneStatusBar', saved.showPhoneStatusBar ?? 'false', setShowPhoneStatusBar, 'show-phone-status-bar')
+        apply('phoneStatusBarConfigured', 'true', setPhoneStatusBarConfigured, 'phone-status-bar-configured')
+      } else {
+        setShowPhoneStatusBar('false')
+        setPhoneStatusBarConfigured('false')
+        try {
+          window.localStorage.setItem('show-phone-status-bar', 'false')
+          window.localStorage.setItem('phone-status-bar-configured', 'false')
+        } catch {}
+        missingSettings.showPhoneStatusBar = 'false'
+        missingSettings.phoneStatusBarConfigured = 'false'
+      }
       apply('julianPhone', saved.julianPhone ?? fallbackSettings.julianPhone, setJulianPhone, 'julian-phone')
       apply('instagramDisplayName', saved.instagramDisplayName ?? fallbackSettings.instagramDisplayName, setInstagramDisplayName, 'instagram-display-name')
       apply('instagramUsername', saved.instagramUsername ?? fallbackSettings.instagramUsername, setInstagramUsername, 'instagram-username')
@@ -592,13 +614,13 @@ function App() {
 
   useEffect(() => {
     if (!projectDatabaseReady) return undefined
-    const settings = { productionDate, clockTime, julianPhone, instagramDisplayName, instagramUsername, instagramBio, instagramFollowers: Number(instagramFollowers) || 0, instagramFollowing: Number(instagramFollowing) || 0, mateStoryCaption, halloweenStoryCaption, friendsStoryCaption, instagramStoryHighlightText, musicTitle, musicArtist, musicDuration, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8, attachmentLoadingSeconds: Number.isFinite(Number(attachmentLoadingSeconds)) ? Number(attachmentLoadingSeconds) : 1.6 }
+    const settings = { productionDate, clockTime, showPhoneStatusBar, phoneStatusBarConfigured, julianPhone, instagramDisplayName, instagramUsername, instagramBio, instagramFollowers: Number(instagramFollowers) || 0, instagramFollowing: Number(instagramFollowing) || 0, mateStoryCaption, halloweenStoryCaption, friendsStoryCaption, instagramStoryHighlightText, musicTitle, musicArtist, musicDuration, mailDurationSeconds: Number(mailDurationSeconds) || 7, mailNotificationDelaySeconds: Number.isFinite(Number(mailNotificationDelaySeconds)) ? Number(mailNotificationDelaySeconds) : 1.8, attachmentLoadingSeconds: Number.isFinite(Number(attachmentLoadingSeconds)) ? Number(attachmentLoadingSeconds) : 1.6 }
     const timer = window.setTimeout(() => {
       if (cloudConfigured) saveCloudSettings(settings).catch(() => {})
       else fetch('/__asset-manager/db/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(() => {})
     }, 300)
     return () => window.clearTimeout(timer)
-  }, [projectDatabaseReady, productionDate, clockTime, julianPhone, instagramDisplayName, instagramUsername, instagramBio, instagramFollowers, instagramFollowing, mateStoryCaption, halloweenStoryCaption, friendsStoryCaption, instagramStoryHighlightText, musicTitle, musicArtist, musicDuration, mailDurationSeconds, mailNotificationDelaySeconds, attachmentLoadingSeconds])
+  }, [projectDatabaseReady, productionDate, clockTime, showPhoneStatusBar, phoneStatusBarConfigured, julianPhone, instagramDisplayName, instagramUsername, instagramBio, instagramFollowers, instagramFollowing, mateStoryCaption, halloweenStoryCaption, friendsStoryCaption, instagramStoryHighlightText, musicTitle, musicArtist, musicDuration, mailDurationSeconds, mailNotificationDelaySeconds, attachmentLoadingSeconds])
 
   function updateStoredTextSetting(setter, key, value) {
     setter(value)
@@ -689,26 +711,26 @@ function App() {
 
   const storyCaptionById = { mate: mateStoryCaption, halloween: halloweenStoryCaption, friends: friendsStoryCaption }
   const instagramStories = storyData.map((story) => ({ ...story, caption: storyCaptionById[story.id] ?? story.caption }))
-  if (path === '/mobile/esc3-p2') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
+  if (path === '/mobile/esc3-p2') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} showPhoneStatusBar={showPhoneStatusBar === 'true'} />
   const selected = scenes.find((scene) => scene.path === path)
-  if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} />
+  if (julianChatScenePaths.includes(path)) return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} showPhoneStatusBar={showPhoneStatusBar === 'true'} />
   if (selected) {
     if (selected.path === '/notebook/esc1a-p2') return <DesktopView onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} clockTime={clockTime} musicTitle={musicTitle} musicArtist={musicArtist} musicDuration={musicDuration} />
     if (selected.path === '/notebook/esc1g-p2') return <MailDesktopScene onHome={() => navigate('/')} clockTime={clockTime} mailBadgeDelayMs={(Number(mailNotificationDelaySeconds) || 0) * 1000} attachmentLoadingMs={(Number(attachmentLoadingSeconds) || 0) * 1000} />
     if (selected.path === '/notebook/esc3-p2') return <MailToAssistantScene onHome={() => navigate('/')} wallpaperUrl={assets.desktopWallpaper} mailDurationMs={(Number(mailDurationSeconds) || 7) * 1000} attachmentLoadingMs={(Number(attachmentLoadingSeconds) || 0) * 1000} clockTime={clockTime} />
-    if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} username={instagramUsername} displayName={instagramDisplayName} avatarUrl={assets.julianInstagramAvatar} stories={instagramStories} highlightText={instagramStoryHighlightText} clockTime={clockTime} bio={instagramBio} followers={instagramFollowers} following={instagramFollowing} />
-    if (selected.path === '/mobile/esc1c-p1') return <LockScreen onHome={() => navigate('/')} wallpaperUrl={assets.mobileWallpaper} clockTime={clockTime} productionDate={productionDate} />
-    if (selected.path === '/mobile/esc1c-p5') return <LockScreen onHome={() => navigate('/')} clockTime={clockTime} productionDate={productionDate} notificationDelayMs={5000} notificationStaggerMs={900} notifications={[
+    if (selected.path === '/mobile/esc1b-p3') return <InstagramStory onHome={() => navigate('/')} username={instagramUsername} displayName={instagramDisplayName} avatarUrl={assets.julianInstagramAvatar} stories={instagramStories} highlightText={instagramStoryHighlightText} clockTime={clockTime} bio={instagramBio} followers={instagramFollowers} following={instagramFollowing} showPhoneStatusBar={showPhoneStatusBar === 'true'} />
+    if (selected.path === '/mobile/esc1c-p1') return <LockScreen onHome={() => navigate('/')} wallpaperUrl={assets.mobileWallpaper} clockTime={clockTime} productionDate={productionDate} showPhoneStatusBar={showPhoneStatusBar === 'true'} />
+    if (selected.path === '/mobile/esc1c-p5') return <LockScreen onHome={() => navigate('/')} clockTime={clockTime} productionDate={productionDate} showPhoneStatusBar={showPhoneStatusBar === 'true'} notificationDelayMs={5000} notificationStaggerMs={900} notifications={[
       { id: 'unknown-1', title: julianPhone, message: 'Hola, estas?', time: 'ahora', kind: 'whatsapp' },
       { id: 'unknown-2', title: julianPhone, message: 'estas bien?', time: 'ahora', kind: 'whatsapp' },
     ]} wallpaperUrl={assets.mobileWallpaper} />
-    if (selected.path === '/mobile/esc1a-p1') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} />
-    if (selected.path === '/mobile/esc1g-p11') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer />
-    if (selected.path === '/mobile/esc1g-p12') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} initialMessages={fullJulianConversation} interactive={false} showComposer dynamicReplay />
+    if (selected.path === '/mobile/esc1a-p1') return <MobileAIChat onHome={() => navigate('/')} clockTime={clockTime} showPhoneStatusBar={showPhoneStatusBar === 'true'} />
+    if (selected.path === '/mobile/esc1g-p11') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} showPhoneStatusBar={showPhoneStatusBar === 'true'} initialMessages={fullJulianConversation} interactive={false} showComposer />
+    if (selected.path === '/mobile/esc1g-p12') return <WhatsAppChat onHome={() => navigate('/')} contactPhone={julianPhone} contactAvatar={assets.julianWhatsappAvatar} showPhoneStatusBar={showPhoneStatusBar === 'true'} initialMessages={fullJulianConversation} interactive={false} showComposer dynamicReplay />
     if (selected.path === '/mobile/esc1g-p10') {
       let callerName = julianPhone
       try { callerName = window.localStorage.getItem('julian-contact-name')?.trim() || julianPhone } catch {}
-      return <IncomingCall onHome={() => navigate('/')} callerName={callerName} callerSubtext="Llamada entrante" avatarUrl={assets.julianWhatsappAvatar} clockTime={clockTime} />
+      return <IncomingCall onHome={() => navigate('/')} callerName={callerName} callerSubtext="Llamada entrante" avatarUrl={assets.julianWhatsappAvatar} clockTime={clockTime} showPhoneStatusBar={showPhoneStatusBar === 'true'} />
     }
     return <ScenePlaceholder scene={selected} onHome={() => navigate('/')} />
   }
@@ -748,6 +770,7 @@ function App() {
       <section className="clock-tool" aria-label="Personalizar horario">
         <div className="clock-tool-heading"><p className="eyebrow">CONFIGURACIÓN</p><h2>Fecha y hora de las pantallas</h2><p>Se aplican a los relojes y la fecha del celular. Las marcas dentro de los mensajes no cambian.</p></div>
         <div className="clock-tool-fields"><label><span>Fecha</span><input type="date" value={productionDate} onChange={(event) => updateProductionDate(event.target.value)} /></label><label><span>Hora</span><input type="time" value={clockTime} onChange={(event) => updateClockTime(event.target.value)} /></label></div>
+        <label className="phone-status-toggle"><input type="checkbox" checked={showPhoneStatusBar === 'true'} onChange={(event) => { const value = event.target.checked ? 'true' : 'false'; updateStoredTextSetting(setShowPhoneStatusBar, 'show-phone-status-bar', value); updateStoredTextSetting(setPhoneStatusBarConfigured, 'phone-status-bar-configured', 'true') }} /><span>Mostrar barra superior en las pantallas de celular</span></label>
       </section>
       <section className="project-text-tool computer-data-tool" aria-label="Datos de la computadora">
         <div><p className="eyebrow">COMPUTADORA</p><h2>Datos de la computadora</h2></div>
@@ -1111,7 +1134,7 @@ function AssistantOrb({ compact = false }) {
   return <div className={`assistant-thinking-visual is-thinking mobile-ai-logo${compact ? ' compact' : ''}`} aria-hidden="true"><span className="assistant-orbit orbit-one"/><span className="assistant-orbit orbit-two"/><span className="assistant-thinking-core">◈</span></div>
 }
 
-function MobileAIChat({ onHome, clockTime = '09:41' }) {
+function MobileAIChat({ onHome, clockTime = '09:41', showPhoneStatusBar = true }) {
   const [messages, setMessages] = useState([])
   const [isRecording, setIsRecording] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
@@ -1196,7 +1219,7 @@ function MobileAIChat({ onHome, clockTime = '09:41' }) {
 
   return <main className="mobile-ai-screen">
     <section className="mobile-ai-phone">
-      <div className="mobile-ai-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
+      {showPhoneStatusBar && <div className="mobile-ai-status"><span>{clockTime}</span><PhoneStatusIcons /></div>}
       <header className="mobile-ai-header"><button className="mobile-ai-back" onClick={onHome} aria-label="Volver">‹</button><AssistantOrb compact /><div><strong>asistente<span>.</span></strong><small><i /> Disponible</small></div><button className="mobile-ai-menu" aria-label="Opciones">•••</button></header>
       <div className="mobile-ai-messages" aria-live="polite">
         {messages.length === 0 && <div className="mobile-ai-welcome"><AssistantOrb /><strong>asistente<span>.</span></strong><p>Mandá un audio para empezar</p></div>}
@@ -1241,7 +1264,7 @@ function PhoneStatusIcons() {
   return <span className="phone-status-icons" aria-label="Señal, Wi-Fi y batería"><Signal /><Wifi /><BatteryFull /></span>
 }
 
-function ChatHistoryPreview({ messages, followingMessages = [], contactName, contactPhone = '+54 9 11 1103-1976', contactAvatar, onClose }) {
+function ChatHistoryPreview({ messages, followingMessages = [], contactName, contactPhone = '+54 9 11 1103-1976', contactAvatar, onClose, showPhoneStatusBar = true }) {
   const [visibleMessages, setVisibleMessages] = useState(messages)
   const [isTyping, setIsTyping] = useState(followingMessages.length > 0)
   const [draft, setDraft] = useState('')
@@ -1279,8 +1302,8 @@ function ChatHistoryPreview({ messages, followingMessages = [], contactName, con
   }
 
   return <div className="chat-preview-overlay">
-    <section className="chat-preview-window" aria-label="Chat">
-      <div className="chat-status"><span>09:43</span><PhoneStatusIcons /></div>
+    <section className={`chat-preview-window${showPhoneStatusBar ? '' : ' status-bar-hidden'}`} aria-label="Chat">
+      {showPhoneStatusBar && <div className="chat-status"><span>09:43</span><PhoneStatusIcons /></div>}
       <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver al chat completo" onClick={onClose}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><div className="chat-contact"><strong>{contactName || 'Número desconocido'}</strong><small>{contactName ? contactPhone : 'últ. vez hoy a las 09:39'}</small></div><button aria-label="Videollamada"><Video aria-hidden="true" /></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button></header>
       <div className="chat-preview-messages">{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message) => <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}`} key={`preview-${message.id}`}><WhatsAppMessageBubble message={message} showTimestamp={Boolean(message.timestamp)} /></div>)}<div className="chat-date-divider">HOY</div></div>
       <div className="chat-composer chat-preview-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input"><input className="chat-message-input" aria-label="Mensaje" placeholder="Mensaje" value={draft} disabled={isTyping} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendText() } }} /></div><button className="composer-audio" aria-label={draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping} onClick={draft.trim() ? sendText : sendAudio}>{draft.trim() ? <Send /> : <Mic />}</button></div>
@@ -1299,7 +1322,7 @@ function ChatAvatar({ contactAvatar }) {
   </>
 }
 
-function InstagramStory({ onHome, username = 'julian.v', displayName = 'Julián', avatarUrl = '', stories = storyData, durationPerStory = 15, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, highlightText = 'Historia' }) {
+function InstagramStory({ onHome, username = 'julian.v', displayName = 'Julián', avatarUrl = '', stories = storyData, durationPerStory = 15, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, highlightText = 'Historia', showPhoneStatusBar = true }) {
   const [storyIndex, setStoryIndex] = useState(0)
   const [isStoryOpen, setIsStoryOpen] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -1423,7 +1446,7 @@ function InstagramStory({ onHome, username = 'julian.v', displayName = 'Julián'
     storyPointerUp(event, true)
   }
 
-  if (!isStoryOpen) return <InstagramProfile username={username} displayName={displayName} avatarUrl={avatarUrl} clockTime={clockTime} bio={bio} followers={followers} following={following} highlightText={highlightText} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
+  if (!isStoryOpen) return <InstagramProfile username={username} displayName={displayName} avatarUrl={avatarUrl} clockTime={clockTime} bio={bio} followers={followers} following={following} highlightText={highlightText} showPhoneStatusBar={showPhoneStatusBar} onOpenStories={() => { setStoryIndex(0); progressRef.current = 0; setProgress(0); setIsStoryOpen(true) }} onHome={onHome} />
   if (!story) return null
   const isZoomed = zoomScale > 1.02
   const storyImageUrl = brokenImages[story.id] ? '' : story.mediaUrl
@@ -1443,11 +1466,11 @@ function InstagramStory({ onHome, username = 'julian.v', displayName = 'Julián'
   </main>
 }
 
-function InstagramProfile({ username, displayName = 'Julián', avatarUrl, posts = julianPosts, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, highlightText = 'Historia', onOpenStories, onHome }) {
+function InstagramProfile({ username, displayName = 'Julián', avatarUrl, posts = julianPosts, clockTime = '09:41', bio = 'Música, cine y alguna foto de madrugada.', followers = 246, following = 318, highlightText = 'Historia', onOpenStories, onHome, showPhoneStatusBar = true }) {
   const [isFollowing, setIsFollowing] = useState(true)
   return <main className="story-screen">
     <section className="instagram-profile-frame">
-      <div className="instagram-profile-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
+      {showPhoneStatusBar && <div className="instagram-profile-status"><span>{clockTime}</span><PhoneStatusIcons /></div>}
       <header className="instagram-profile-toolbar"><button onClick={onHome} aria-label="Volver"><ArrowLeft /></button><strong>{username}</strong><button aria-label="Opciones"><Menu /></button></header>
       <div className="instagram-profile-content">
         <div className="instagram-profile-summary"><button className="instagram-profile-avatar" onClick={onOpenStories} aria-label="Ver historias de Julián"><span>J{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}</span></button><div className="instagram-profile-stats"><div><span><b>{posts.length}</b> publicaciones</span><span><b>{followers}</b> seguidores</span><span><b>{following}</b> seguidos</span></div></div></div>
@@ -1464,7 +1487,7 @@ function InstagramProfile({ username, displayName = 'Julián', avatarUrl, posts 
   </main>
 }
 
-function LockScreen({ onHome, wallpaperUrl = '', notifications = [], notificationDelayMs = 0, notificationStaggerMs = 0, clockTime = '', productionDate = '' }) {
+function LockScreen({ onHome, wallpaperUrl = '', notifications = [], notificationDelayMs = 0, notificationStaggerMs = 0, clockTime = '', productionDate = '', showPhoneStatusBar = true }) {
   const [now, setNow] = useState(new Date())
   const [cornerTaps, setCornerTaps] = useState(0)
   const [wallpaperFailed, setWallpaperFailed] = useState(false)
@@ -1517,7 +1540,7 @@ function LockScreen({ onHome, wallpaperUrl = '', notifications = [], notificatio
     {wallpaperUrl && !wallpaperFailed && <FlexibleAssetImage className="lock-wallpaper-image" src={wallpaperUrl} alt="" onError={() => setWallpaperFailed(true)} />}
     {(!wallpaperUrl || wallpaperFailed) && <div className="lock-wallpaper-art"><div className="lock-horizon" /><div className="lock-orb" /><div className="lock-shadow lock-shadow-one" /><div className="lock-shadow lock-shadow-two" /></div>}
     <button className="lock-return-hotspot" aria-label="Volver" onClick={() => setCornerTaps((count) => count + 1)} />
-    <div className="lock-status"><span>{clock}</span><PhoneStatusIcons /></div>
+    {showPhoneStatusBar && <div className="lock-status"><span>{clock}</span><PhoneStatusIcons /></div>}
     <div className="lock-date"><span className="lock-symbol">⌑</span><span>{date}</span></div>
     <time className="lock-clock">{clock}</time>
     <div className="lock-notifications">{notifications.map((notification, index) => {
@@ -1529,7 +1552,7 @@ function LockScreen({ onHome, wallpaperUrl = '', notifications = [], notificatio
   </main>
 }
 
-function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvatar = '', statusTime = '09:43', initialMessages = julianOpeningMessages, interactive = true, showComposer = interactive, dynamicReplay = false }) {
+function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvatar = '', statusTime = '09:43', initialMessages = julianOpeningMessages, interactive = true, showComposer = interactive, dynamicReplay = false, showPhoneStatusBar = true }) {
   const [headerTaps, setHeaderTaps] = useState(0)
   const [brokenImages, setBrokenImages] = useState({})
   const [displayName, setDisplayName] = useState(() => {
@@ -1823,8 +1846,8 @@ function WhatsAppChat({ onHome, contactName = '', contactPhone = '', contactAvat
   const composerPlaceholder = 'Mensaje'
 
   return <main className="chat-screen">
-    <div className="chat-phone">
-      <div className="chat-status"><span>{statusTime}</span><PhoneStatusIcons /></div>
+    <div className={`chat-phone${showPhoneStatusBar ? '' : ' status-bar-hidden'}`}>
+      {showPhoneStatusBar && <div className="chat-status"><span>{statusTime}</span><PhoneStatusIcons /></div>}
       <header className="chat-header"><button className="chat-back-arrow" aria-label="Volver" onClick={() => setHeaderTaps((count) => count + 1)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg></button><ChatAvatar contactAvatar={contactAvatar} /><button type="button" className="chat-contact chat-contact-trigger" onClick={openContactSheet} aria-label={displayName ? `Editar contacto ${displayName}` : `Agendar ${contactPhone}`}><strong>{displayName || contactPhone}</strong><small>{displayName ? contactPhone : 'últ. vez hoy a las 09:39'}</small></button><button aria-label="Videollamada"><Video aria-hidden="true" /></button><button aria-label="Llamada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l2 5-2 2a15 15 0 0 0 4 4l2-2 5 2v3c0 1.1-.9 2-2 2C10 19 5 14 5 5c0-1.1.9-2 2-2z"/></svg></button><button aria-label="Opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></header>
       <div className={`chat-messages-area${isScrollingMessages ? ' is-scrolling' : ''}`} onScroll={handleMessagesScroll}>{isTyping && <div className="chat-message-row incoming"><article className="chat-bubble typing-bubble"><span className="typing-dots"><i /><i /><i /></span><span>Escribiendo...</span></article></div>}{[...visibleMessages].reverse().map((message, reversedIndex) => { const messageIndex = visibleMessages.length - 1 - reversedIndex; return <div className={`chat-message-row ${message.sender === 'me' ? 'outgoing' : 'incoming'}`} key={message.id}><WhatsAppMessageBubble message={message} broken={brokenImages[message.id]} onImageError={() => setBrokenImages((current) => ({ ...current, [message.id]: true }))} showTimestamp={interactive || Boolean(message.timestamp)} previewable={!interactive} onClick={!interactive ? () => setCheckpoint(messageIndex) : undefined} /></div>})}{interactive && <div className="chat-date-divider">HOY</div>}</div>
       {showComposer && <div className="chat-composer"><button className="composer-add" aria-label="Agregar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div className="composer-input">{isRecording ? <div className="chat-recording-active"><i /> Grabando audio... <span>soltá para cancelar</span></div> : <><input className="chat-message-input" aria-label="Mensaje" placeholder={composerPlaceholder} value={draft} disabled={isTyping || dynamicComposerDisabled} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); sendMessage() } }} /><button className="composer-sticker" aria-label="Stickers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v9l-6 6H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 20v-5a2 2 0 0 1 2-2h4"/></svg></button></>}</div><button className="composer-camera" aria-label="Cámara"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11H3V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button className={`composer-audio${isRecording ? ' is-recording' : ''}`} aria-label={awaitingInterruptedRecording ? 'Mantener para grabar audio' : draft.trim() ? 'Enviar mensaje' : 'Enviar audio'} disabled={isTyping || dynamicComposerDisabled || (dynamicReplay && !draft.trim()) || (interactive && !draft.trim() && !canSendAudio && !awaitingInterruptedRecording)} onPointerDown={beginInterruptedRecording} onPointerUp={endInterruptedRecording} onPointerCancel={endInterruptedRecording} onClick={handleMicClick}>{draft.trim() && !awaitingInterruptedRecording ? <Send /> : <Mic />}</button></div>}
@@ -1895,7 +1918,7 @@ function CallSlideControl({ action, label, onAction, onTap }) {
   </div>
 }
 
-function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada entrante', avatarUrl = '', clockTime = '01:32', onReject, onAccept }) {
+function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada entrante', avatarUrl = '', clockTime = '01:32', onReject, onAccept, showPhoneStatusBar = true }) {
   const [callState, setCallState] = useState('ringing')
   const [seconds, setSeconds] = useState(0)
   const [returnTaps, setReturnTaps] = useState(0)
@@ -1931,7 +1954,7 @@ function IncomingCall({ onHome, callerName = 'JULIÁN', callerSubtext = 'llamada
   if (callState === 'ended') return <main className="call-cut-screen" aria-label="Llamada finalizada">{showEndedMessage && <p className="call-ended-message" role="status">Llamada finalizada</p>}<button onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver" /></main>
   return <main className="incoming-call-screen">
     <div className="call-wallpaper" />
-    <div className="call-status"><span>{clockTime}</span><PhoneStatusIcons /></div>
+    {showPhoneStatusBar && <div className="call-status"><span>{clockTime}</span><PhoneStatusIcons /></div>}
     <div className="call-identity"><div className="call-avatar">{avatarUrl && <FlexibleAssetImage src={avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />}<span>J</span></div><h1>{callerName}</h1><p>{callState === 'connected' ? duration : callerSubtext}</p></div>
     <div className="call-actions">{callState === 'ringing' ? <><CallSlideControl action="reject" label="Rechazar" onAction={rejectCall} onTap={rejectCall} /><CallSlideControl action="accept" label="Aceptar" onAction={acceptCall} onTap={acceptCall} /></> : <><div className="call-action-group"><button className="call-action connected-control" aria-label="Silenciar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg></button><small>Silenciar</small></div><div className="call-action-group"><button className="call-action connected-control" aria-label="Altavoz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9a5 5 0 0 1 0 6m2.5-9a9 9 0 0 1 0 12"/></svg></button><small>Altavoz</small></div><div className="call-action-group"><button className="call-action reject" onClick={rejectCall} aria-label="Finalizar llamada"><svg className="call-handset decline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2c1.1.4 2.3.6 3.6.6a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A18 18 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.3.2 2.5.6 3.6a1 1 0 0 1-.2 1z"/></svg></button><small>Finalizar</small></div></>}</div>
     <button className="call-return-hotspot" onClick={() => setReturnTaps((count) => count + 1)} aria-label="Volver" />
