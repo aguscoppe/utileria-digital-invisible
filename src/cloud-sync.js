@@ -6,9 +6,10 @@ const bucket = 'project-assets'
 const stateTable = 'project_state'
 
 const assetFiles = {
+  'julian-mate-story': 'julian_mate_story.jpg',
   'julian-profile-instagram': 'julian_profile_instagram.jpg',
   'julian-profile-whatsapp': 'julian_profile_whatsapp.jpg',
-  'julian-post-profile': 'julian_profile_generated.jpg',
+  'julian-post-profile': 'julian_profile_post.jpg',
   'julian-post-dog': 'julian_dog_post.jpg',
   'julian-post-eiffel': 'julian_eiffel_post.jpg',
   'party-halloween': 'party_halloween.jpg',

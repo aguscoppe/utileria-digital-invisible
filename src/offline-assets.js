@@ -1,9 +1,10 @@
 const databaseName = 'utileria-digital-invisible-offline'
 const storeName = 'assets'
 const assetFileNames = {
+  'julian-mate-story': 'julian_mate_story',
   'julian-profile-instagram': 'julian_profile_instagram',
   'julian-profile-whatsapp': 'julian_profile_whatsapp',
-  'julian-post-profile': 'julian_profile_generated',
+  'julian-post-profile': 'julian_profile_post',
   'julian-post-dog': 'julian_dog_post',
   'julian-post-eiffel': 'julian_eiffel_post',
   'party-halloween': 'party_halloween',

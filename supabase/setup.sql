@@ -30,13 +30,26 @@ create table if not exists public.project_assets (
   check (
     (id = 'mail-video' and extension = 'mp4' and object_path = 'mail-video.mp4') or
     (id in (
-      'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
+      'julian-mate-story', 'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
       'julian-post-dog', 'julian-post-eiffel', 'party-halloween', 'agustina-julian-party',
       'martina-wallpaper-desktop', 'martina-wallpaper-mobile', 'martina-mirror-selfie',
       'crown-photo', 'emily-costume'
     ) and extension in ('jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'heic', 'heif')
       and object_path = id || '.' || extension)
   )
+);
+
+alter table public.project_assets drop constraint if exists project_assets_check;
+alter table public.project_assets drop constraint if exists project_assets_allowed_asset;
+alter table public.project_assets add constraint project_assets_allowed_asset check (
+  (id = 'mail-video' and extension = 'mp4' and object_path = 'mail-video.mp4') or
+  (id in (
+    'julian-mate-story', 'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
+    'julian-post-dog', 'julian-post-eiffel', 'party-halloween', 'agustina-julian-party',
+    'martina-wallpaper-desktop', 'martina-wallpaper-mobile', 'martina-mirror-selfie',
+    'crown-photo', 'emily-costume'
+  ) and extension in ('jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'heic', 'heif')
+    and object_path = id || '.' || extension)
 );
 
 alter table public.project_assets enable row level security;
@@ -52,7 +65,7 @@ create policy "Anyone can register allowed project assets"
   with check (
     (id = 'mail-video' and extension = 'mp4' and object_path = 'mail-video.mp4') or
     (id in (
-      'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
+      'julian-mate-story', 'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
       'julian-post-dog', 'julian-post-eiffel', 'party-halloween', 'agustina-julian-party',
       'martina-wallpaper-desktop', 'martina-wallpaper-mobile', 'martina-mirror-selfie',
       'crown-photo', 'emily-costume'
@@ -67,7 +80,7 @@ create policy "Anyone can update allowed project assets"
   with check (
     (id = 'mail-video' and extension = 'mp4' and object_path = 'mail-video.mp4') or
     (id in (
-      'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
+      'julian-mate-story', 'julian-profile-instagram', 'julian-profile-whatsapp', 'julian-post-profile',
       'julian-post-dog', 'julian-post-eiffel', 'party-halloween', 'agustina-julian-party',
       'martina-wallpaper-desktop', 'martina-wallpaper-mobile', 'martina-mirror-selfie',
       'crown-photo', 'emily-costume'

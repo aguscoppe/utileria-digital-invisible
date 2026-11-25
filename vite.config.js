@@ -4,9 +4,10 @@ import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promis
 import path from 'node:path'
 
 const managedAssets = {
+  'julian-mate-story': 'public/assets/julian_mate_story.jpg',
   'julian-profile-instagram': 'public/assets/julian_profile_instagram.jpg',
   'julian-profile-whatsapp': 'public/assets/julian_profile_whatsapp.jpg',
-  'julian-post-profile': 'public/assets/julian_profile_generated.jpg',
+  'julian-post-profile': 'public/assets/julian_profile_post.jpg',
   'julian-post-dog': 'public/assets/julian_dog_post.jpg',
   'julian-post-eiffel': 'public/assets/julian_eiffel_post.jpg',
   'party-halloween': 'public/assets/party_halloween.jpg',
@@ -18,16 +19,12 @@ const managedAssets = {
   'crown-photo': 'public/assets/crown_photo.jpg',
   'emily-costume': 'public/assets/emily_costume.jpg',
 }
-const managedAssetDefaults = {
-  'julian-post-profile': 'public/assets/julian_profile_generated.png',
-  'julian-post-dog': 'public/assets/julian_dog_post.png',
-  'julian-post-eiffel': 'public/assets/julian_eiffel_post.png',
-}
+const managedAssetDefaults = {}
 const maxAssetSize = 100 * 1024 * 1024
 const profileAssetIds = new Set(['julian-profile-instagram', 'julian-profile-whatsapp'])
 const imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'svg', 'heic', 'heif']
 const databasePath = 'data/project-database.json'
-const projectSettingKeys = new Set(['productionDate', 'clockTime', 'julianPhone', 'instagramBio', 'musicTitle', 'musicArtist', 'musicDuration', 'mailDurationSeconds', 'mailNotificationDelaySeconds', 'julianContactName'])
+const projectSettingKeys = new Set(['productionDate', 'clockTime', 'julianPhone', 'instagramBio', 'instagramFollowers', 'instagramFollowing', 'musicTitle', 'musicArtist', 'musicDuration', 'mailDurationSeconds', 'mailNotificationDelaySeconds', 'attachmentLoadingSeconds', 'julianContactName'])
 
 function isValidAsset(id, buffer) {
   if (id === 'mail-video') {

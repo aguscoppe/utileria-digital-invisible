@@ -54,7 +54,7 @@ Las tareas 1.1, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
 ## Assets de rodaje
 
-Usá **Carga de archivos** en la pantalla principal para reemplazar los wallpapers, fotos de perfil, publicaciones, historias, fotos del chat y video. Las imágenes pueden subirse en formatos comunes del teléfono; el servidor detecta la extensión y la app busca el archivo con su extensión real. Las tres publicaciones de Instagram permiten restaurar su imagen original.
+Usá **Carga de archivos** en la pantalla principal para cargar wallpapers, fotos de perfil, publicaciones, historias, fotos del chat y video. Las imágenes pueden subirse en formatos comunes del teléfono; el servidor detecta la extensión y la app busca el archivo con su extensión real. Las fotos de perfil y publicaciones de Julián empiezan vacías hasta que se carguen imágenes del proyecto.
 
 Con Supabase configurado, los ajustes y el índice de assets se guardan en `project_state`, y los archivos binarios en el bucket `project-assets`. Sin esa configuración, se usa el almacenamiento local descrito arriba. Si la base de datos o el servidor no están disponibles, la app sigue usando los ajustes del navegador y los archivos incluidos; las cargas hechas sin conexión se guardan en el navegador con IndexedDB y se aplican a las escenas de ese dispositivo. Esas cargas locales no se sincronizan automáticamente con Supabase.
 

@@ -8,3 +8,13 @@
 .mail-window-controls{height:100%;display:flex;align-items:center;gap:6px;margin-right:1px}.mail-window-controls .mac-window-control{width:12px;height:12px;display:grid;place-items:center;padding:0;border:1px solid transparent;border-radius:50%;cursor:pointer}.mail-window-controls .mac-window-control.close{background:#ff5f57;border-color:#e0443e;color:#571e1b}.mail-window-controls .mac-window-control.minimize{background:#febc2e;border-color:#dea123;color:#654800}.mail-window-controls .mac-window-control.zoom{background:#28c840;border-color:#1eaa31;color:#15591e}.mail-window-controls .mac-window-control svg{width:7px;height:7px;stroke:currentColor;stroke-width:2.4;opacity:0;transition:opacity .12s}.mail-window-controls:hover .mac-window-control svg,.mail-window-controls .mac-window-control:focus-visible svg{opacity:1}.mail-screen.is-zoomed{width:100vw;height:100vh;min-height:0;margin:0}
 .mail-assistant-sequence{position:fixed;z-index:100;inset:0;overflow:hidden;background:#090a0a}.mail-assistant-desktop,.mail-assistant-cover{position:absolute;inset:0;display:grid;place-items:center}.mail-assistant-desktop{z-index:0}.mail-assistant-cover{z-index:2;pointer-events:none}.mail-assistant-cover>.mail-screen{pointer-events:auto}
 .mail-screen.is-minimizing{transform-origin:50% calc(100% - 24px);animation:mail-minimize .42s cubic-bezier(.45,0,.8,.4) forwards;pointer-events:none}.mail-screen.is-closing{transform-origin:center;animation:mail-close .3s ease-in forwards;pointer-events:none}@keyframes mail-minimize{to{transform:scale(.045);opacity:0;filter:blur(2px);border-radius:12px}}@keyframes mail-close{to{transform:scale(.88);opacity:0;filter:blur(2px)}}
+
+/* Single compact message header and attachment only. */
+.mail-reading{padding-top:0}
+.sender-details>div{min-width:0;flex-direction:row;align-items:center}
+.sender-details>div strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sender-details time{align-self:center;display:flex;align-items:center;margin-left:auto;white-space:nowrap}
+.mail-message-actions{flex:none;color:#747783;font-size:12px;white-space:nowrap}
+.attachment-card{margin-top:14px}
+.mail-reply{margin-top:14px}
+@media(max-width:750px){.mail-message-actions{font-size:11px}.attachment-card{margin-top:12px}}
